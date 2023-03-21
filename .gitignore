@@ -1,0 +1,12 @@
+/uploads/*
+!.gitkeep
+*.exe
+*.exe~
+*config/conf/*
+/.vscode/*
+.idea/*
+log_file/*
+temp/*
+callGraph.bat
+#白名单
+!config/conf/EmptyConfig.yaml
