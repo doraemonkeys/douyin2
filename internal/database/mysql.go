@@ -45,20 +45,20 @@ func connectMysql() {
 
 func mirateTable() {
 	db.SetupJoinTable(&models.UserModel{}, models.UserModelTable_FollowersSlice, &models.UserFollowerModel{})
-	db.SetupJoinTable(&models.UserModel{}, models.UserModelTable_FansSlice, &models.UserFansModel{})
-	db.SetupJoinTable(&models.UserModel{}, models.UserModelTable_LikesSlice, &models.UserLikesModel{})
-	db.SetupJoinTable(&models.UserModel{}, models.UserModelTable_CollectionsSlice, &models.UserCollectionsModel{})
+	db.SetupJoinTable(&models.UserModel{}, models.UserModelTable_FansSlice, &models.UserFanModel{})
+	db.SetupJoinTable(&models.UserModel{}, models.UserModelTable_LikesSlice, &models.UserLikeModel{})
+	db.SetupJoinTable(&models.UserModel{}, models.UserModelTable_CollectionsSlice, &models.UserCollectionModel{})
 
-	db.SetupJoinTable(&models.VideoModel{}, models.VideoModelTable_LikesSlice, &models.UserLikesModel{})
-	db.SetupJoinTable(&models.VideoModel{}, models.VideoModelTable_CollectionsSlice, &models.UserCollectionsModel{})
+	db.SetupJoinTable(&models.VideoModel{}, models.VideoModelTable_LikesSlice, &models.UserLikeModel{})
+	db.SetupJoinTable(&models.VideoModel{}, models.VideoModelTable_CollectionsSlice, &models.UserCollectionModel{})
 
 	db.AutoMigrate(
 		&models.UserModel{},
 		&models.VideoModel{},
 		&models.CommentModel{},
 		&models.UserFollowerModel{},
-		&models.UserFansModel{},
-		&models.UserLikesModel{},
-		&models.UserCollectionsModel{},
+		&models.UserFanModel{},
+		&models.UserLikeModel{},
+		&models.UserCollectionModel{},
 	)
 }

@@ -5,7 +5,7 @@ import (
 )
 
 // 收藏列表
-type UserCollectionsModel struct {
+type UserCollectionModel struct {
 	ID        uint `gorm:"primarykey"`
 	UserID    uint
 	VideoID   uint

@@ -3,7 +3,7 @@ package models
 import "time"
 
 // 粉丝列表
-type UserFansModel struct {
+type UserFanModel struct {
 	ID        uint `gorm:"primarykey"`
 	UserID    uint
 	FanID     uint
