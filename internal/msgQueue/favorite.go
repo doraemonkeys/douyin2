@@ -1,12 +1,11 @@
 package msgQueue
 
 import (
-	"errors"
 	"sync"
 
-	"github.com/Doraemonkeys/douyin2/internal/app/models"
-	"github.com/Doraemonkeys/douyin2/internal/database"
+	"github.com/Doraemonkeys/douyin2/internal/app/services"
 	"github.com/Doraemonkeys/douyin2/internal/pkg/messageQueue"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -33,27 +32,26 @@ func GetFavoriteMQ() messageQueue.MQ[FavoriteMSg] {
 }
 
 // 点赞消息队列
-func InitFavoriteMQ(msgHandler func(FavoriteMSg) error) {
+func InitFavoriteMQ(msgHandler func(FavoriteMSg)) {
 	favoriteMQInitOnce.Do(func() {
 		favoriteMQ = messageQueue.NewSimpleMQ(FavoriteWorkerNum, msgHandler)
 	})
 }
 
-func FavoriteMsgHandler(msg FavoriteMSg) error {
-	db := database.GetMysqlDB()
-	like_count := models.VideoModelTable_LikeCount
+func FavoriteMsgHandler(msg FavoriteMSg) {
 	if msg.ActionType == 1 {
 		// 点赞
-		err := db.Model(&models.VideoModel{}).Where("id = ?", msg.VideoID).Update(like_count, db.Raw(like_count+" + ?", 1)).Error
+		err := services.LikeVideo(msg.UserID, msg.VideoID)
 		if err != nil {
-			return err
+			logrus.Error("点赞失败：", err)
 		}
 	} else if msg.ActionType == 2 {
 		// 取消点赞
-		err := db.Model(&models.VideoModel{}).Where("id = ?", msg.VideoID).Update(like_count, db.Raw(like_count+" - ?", 1)).Error
+		err := services.DislikeVideo(msg.UserID, msg.VideoID)
 		if err != nil {
-			return err
+			logrus.Error("取消点赞失败：", err)
 		}
+	} else {
+		logrus.Error("不合法的参数：", msg)
 	}
-	return errors.New(ErrParam)
 }

@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"math"
+	"strings"
 
 	"github.com/Doraemonkeys/douyin2/internal/app/handlers/response"
 	"github.com/Doraemonkeys/douyin2/internal/app/models"
@@ -20,6 +21,15 @@ import (
 const (
 	// 函数传入的参数错误
 	ErrParam = "不合法的参数"
+	// 重复插入
+	ErrDuplicate = "重复插入"
+	// 删除不存在的记录
+	ErrDeleteNotExists = "删除不存在的记录"
+)
+
+const (
+	// 重复插入
+	MysqlDuplicatePrefix = "Error 1062"
 )
 
 // QueryVideoAndUserListByLastTime
@@ -140,4 +150,55 @@ func QueryLikeVideoListByUserID(userId uint) ([]models.VideoModel, models.UserMo
 		return nil, user, err
 	}
 	return user.Likes, user, nil
+}
+
+// 点赞视频
+func LikeVideo(userID, videoID uint) error {
+	db := database.GetMysqlDB()
+	// 1. 更新userLike表
+	var userLike models.UserLikeModel
+	userLike.UserID = userID
+	userLike.VideoID = videoID
+	err := db.Create(&userLike).Error
+	if err != nil {
+		if strings.HasPrefix(err.Error(), MysqlDuplicatePrefix) {
+			return errors.New(ErrDuplicate)
+		}
+		return err
+	}
+	// 2. 更新video表
+	like_count := models.VideoModelTable_LikeCount
+	err = db.Model(&models.VideoModel{}).Where("id = ?", videoID).
+		Update(like_count, gorm.Expr(like_count+" + ?", 1)).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// 取消点赞视频
+func DislikeVideo(userID, videoID uint) error {
+	db := database.GetMysqlDB()
+
+	// 1. 查询userLike表 是否已经点赞
+	var userLike models.UserLikeModel
+	user_id := models.UserLikeModelTable_UserID
+	video_id := models.UserLikeModelTable_VideoID
+	err := db.Where(user_id+" = ? and "+video_id+" = ?", userID, videoID).Take(&userLike).Error
+	if err == gorm.ErrRecordNotFound || userLike.UserID == 0 {
+		return errors.New(ErrDeleteNotExists)
+	}
+	// 2. 更新userLike表
+	err = db.Delete(&userLike).Error
+	if err != nil {
+		return err
+	}
+	// 3. 更新video表
+	like_count := models.VideoModelTable_LikeCount
+	err = db.Model(&models.VideoModel{}).Where("id = ?", videoID).
+		Update(like_count, gorm.Expr(like_count+" - ?", 1)).Error
+	if err != nil {
+		return err
+	}
+	return nil
 }
