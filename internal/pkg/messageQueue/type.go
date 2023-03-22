@@ -1,4 +1,4 @@
-package messagequeue
+package messageQueue
 
 type MQ[T any] interface {
 	// Push push a message to queue

@@ -1,4 +1,4 @@
-package messagequeue
+package messageQueue
 
 import (
 	"sync"
@@ -14,10 +14,16 @@ import (
 // and the current length of the queue to be retrieved.
 
 type SimpleMQ[T any] struct {
-	que     *arrayQueue.Queue[T]
-	queLock sync.Mutex
+	que       *arrayQueue.Queue[T]
+	queLock   sync.Mutex
+	workerNum int
+	// 用于传递消息给worker的通道,容量为buf的长度(同样是为了尽快从消息队列中读取消息)
 	msgChan chan T
-	wait    chan struct{}
+	// 用于通知发送消息的协程，队列中有消息了,waitChan的容量为1，保证Push时不会阻塞
+	waitChan chan struct{}
+	//由于只有一个goroutine读取队列中的消息，可能发生读饥饿的情况，
+	// buf是用于存储消息的缓冲区,保证在低概率抢到锁的情况下，也能读取到足够的队列中的消息
+	buf []T
 }
 
 // NewSimpleMQ function creates a new SimpleMQ instance and starts the worker goroutines.
@@ -25,11 +31,16 @@ type SimpleMQ[T any] struct {
 // and calls the provided message handler function.
 // The message handler must be a safe function that can be called concurrently.
 func NewSimpleMQ[T any](workerNum int, msgHandler func(T) error) *SimpleMQ[T] {
-	var Msg chan T = make(chan T)
+	var buf []T = make([]T, workerNum*2)
+	var Msg chan T = make(chan T, len(buf))
+	var Wait chan struct{} = make(chan struct{}, 1)
 	var ret = &SimpleMQ[T]{
-		queLock: sync.Mutex{},
-		que:     arrayQueue.New[T](),
-		msgChan: Msg,
+		queLock:   sync.Mutex{},
+		que:       arrayQueue.New[T](),
+		workerNum: workerNum,
+		msgChan:   Msg,
+		waitChan:  Wait,
+		buf:       buf,
 	}
 	for i := 0; i < workerNum; i++ {
 		go ret.worker(msgHandler)
@@ -52,31 +63,50 @@ func (mq *SimpleMQ[T]) worker(msgHandler func(T) error) {
 // 单线程读取队列中的消息，发送到消息通道中
 func sendMsg[T any](mq *SimpleMQ[T], msgHandler func(T) error) {
 	for {
+		var empty bool = false
+		var msgNum int = 0
 		mq.queLock.Lock()
-		msg := mq.que.Pop()
-		if mq.que.Len() < mq.que.Cap()/2 {
-			newCap := mq.que.Cap() / 2
-			// 释放内存
-			mq.que.Resize(newCap)
+		// 读取队列中的消息，放到buf中，保证在低概率抢到锁的情况下，也能读取到足够的队列中的消息
+		for msgNum < len(mq.buf) && !mq.que.Empty() {
+			mq.buf[msgNum] = mq.que.Pop()
+			msgNum++
+		}
+		mq.tryShrink()
+		if mq.que.Empty() {
+			empty = true
 		}
 		mq.queLock.Unlock()
-
-		mq.msgChan <- msg
-		if mq.que.Len() == 0 {
-			// 等待队列中有消息
-			<-mq.wait
+		//log.Printf("msgNum: %v, empty: %v,msgChan len: %v\n", msgNum, empty, len(mq.msgChan))
+		// 发送消息到消息通道中
+		for i := 0; i < msgNum; i++ {
+			mq.msgChan <- mq.buf[i]
 		}
+		// 读取完队列中的消息后，若队列为空，
+		// 其他goroutine再次调用Push时，必然会给waitChan发送消息
+		if empty {
+			// 等待队列中有消息
+			<-mq.waitChan
+		}
+	}
+}
+
+// 缩小队列的容量(调用需要加锁)
+func (mq *SimpleMQ[T]) tryShrink() {
+	if mq.que.Len() < mq.que.Cap()/2 {
+		newCap := mq.que.Cap() / 2
+		// 释放内存
+		mq.que.Resize(newCap)
 	}
 }
 
 func (mq *SimpleMQ[T]) Push(msg T) {
 	mq.queLock.Lock()
 	mq.que.Push(msg)
-	mq.queLock.Unlock()
 	if mq.Len() == 1 {
 		// 通知发送消息的协程,队列中有消息了
-		mq.wait <- struct{}{}
+		mq.waitChan <- struct{}{}
 	}
+	mq.queLock.Unlock()
 }
 
 func (mq *SimpleMQ[T]) Len() int {

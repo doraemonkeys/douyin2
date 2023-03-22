@@ -6,7 +6,7 @@ import (
 
 	"github.com/Doraemonkeys/douyin2/internal/app/models"
 	"github.com/Doraemonkeys/douyin2/internal/database"
-	"github.com/Doraemonkeys/douyin2/internal/pkg/messagequeue"
+	"github.com/Doraemonkeys/douyin2/internal/pkg/messageQueue"
 )
 
 const (
@@ -23,19 +23,19 @@ type FavoriteMSg struct {
 
 const FavoriteWorkerNum int = 5
 
-var favoriteMQ *messagequeue.SimpleMQ[FavoriteMSg]
+var favoriteMQ *messageQueue.SimpleMQ[FavoriteMSg]
 var favoriteMQInitOnce sync.Once
 
 // GetFavoriteMQ
 // 获取点赞消息队列
-func GetFavoriteMQ() messagequeue.MQ[FavoriteMSg] {
+func GetFavoriteMQ() messageQueue.MQ[FavoriteMSg] {
 	return favoriteMQ
 }
 
 // 点赞消息队列
 func InitFavoriteMQ(msgHandler func(FavoriteMSg) error) {
 	favoriteMQInitOnce.Do(func() {
-		favoriteMQ = messagequeue.NewSimpleMQ(FavoriteWorkerNum, msgHandler)
+		favoriteMQ = messageQueue.NewSimpleMQ(FavoriteWorkerNum, msgHandler)
 	})
 }
 
