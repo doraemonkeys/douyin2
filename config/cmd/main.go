@@ -27,7 +27,7 @@ func generaetEmptyConfig() {
 	conf.Mysql.Dbname = "douyin2"
 	conf.Mysql.Timeout = "10s"
 	conf.Mysql.MaxIdleConns = 10
-	conf.Mysql.MaxOpenConns = 100
+	conf.Mysql.MaxOpenConns = 11
 	conf.Log.Level = "trace"
 	conf.Log.Path = "./log_file"
 	conf.Log.PanicLogName = "gin_panic.log"
