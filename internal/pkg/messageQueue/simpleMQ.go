@@ -30,7 +30,7 @@ type SimpleMQ[T any] struct {
 // The worker function processes messages from the message channel
 // and calls the provided message handler function.
 // The message handler must be a safe function that can be called concurrently.
-func NewSimpleMQ[T any](workerNum int, msgHandler func(T) error) *SimpleMQ[T] {
+func NewSimpleMQ[T any](workerNum int, msgHandler func(T)) *SimpleMQ[T] {
 	var buf []T = make([]T, workerNum*2)
 	var Msg chan T = make(chan T, len(buf))
 	var Wait chan struct{} = make(chan struct{}, 1)
@@ -50,7 +50,7 @@ func NewSimpleMQ[T any](workerNum int, msgHandler func(T) error) *SimpleMQ[T] {
 	return ret
 }
 
-func (mq *SimpleMQ[T]) worker(msgHandler func(T) error) {
+func (mq *SimpleMQ[T]) worker(msgHandler func(T)) {
 	for {
 		msg := <-mq.msgChan
 		msgHandler(msg)
@@ -61,7 +61,7 @@ func (mq *SimpleMQ[T]) worker(msgHandler func(T) error) {
 // The implementation also includes a wait channel to notify the sendMsg function
 // when the queue is not empty.
 // 单线程读取队列中的消息，发送到消息通道中
-func sendMsg[T any](mq *SimpleMQ[T], msgHandler func(T) error) {
+func sendMsg[T any](mq *SimpleMQ[T], msgHandler func(T)) {
 	for {
 		var empty bool = false
 		var msgNum int = 0

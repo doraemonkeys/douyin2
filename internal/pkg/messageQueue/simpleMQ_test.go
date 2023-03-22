@@ -8,13 +8,13 @@ import (
 )
 
 // benchmarkSimpleMQ_Push
+// 100000 并发Push ，耗时：36ms
 func BenchmarkSimpleMQ_Push(b *testing.B) {
 
 	// 模拟MySQL的处理
-	mq := NewSimpleMQ(500, func(msg string) error {
-		time.Sleep(100 * time.Millisecond)
+	mq := NewSimpleMQ(500, func(msg string) {
+		time.Sleep(10 * time.Millisecond)
 		//fmt.Printf(msg + " ")
-		return nil
 	})
 	// monitor
 	var done = make(chan struct{})
@@ -23,7 +23,6 @@ func BenchmarkSimpleMQ_Push(b *testing.B) {
 			fmt.Println()
 			fmt.Println()
 			if mq.Len() == 0 {
-				fmt.Printf("\033[1;32mAll msg consumed\033[0m\n")
 				break
 			}
 			fmt.Printf("\033[1;31mqueue Len(): %v, queue cap(): %v\033[0m\n", mq.Len(), mq.que.Cap())
@@ -55,4 +54,5 @@ func BenchmarkSimpleMQ_Push(b *testing.B) {
 
 	// wait for all msg consumed
 	<-done
+	fmt.Printf("\033[1;32mAll msg consumed\033[0m\n")
 }
