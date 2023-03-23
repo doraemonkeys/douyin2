@@ -14,8 +14,10 @@ import (
 // and the current length of the queue to be retrieved.
 
 type SimpleMQ[T any] struct {
-	que       *arrayQueue.Queue[T]
-	queLock   sync.Mutex
+	que     *arrayQueue.Queue[T]
+	queLock sync.Mutex
+	// 队列的最小容量，防止队列中的消息过少，导致频繁的扩容后又缩容，影响性能
+	queMinCap int
 	workerNum int
 	// 用于传递消息给worker的通道,容量为buf的长度(同样是为了尽快从消息队列中读取消息)
 	msgChan chan T
@@ -42,6 +44,7 @@ func NewSimpleMQ[T any](workerNum int, msgHandler func(T)) *SimpleMQ[T] {
 		waitChan:  Wait,
 		buf:       buf,
 	}
+	ret.queMinCap = 200
 	for i := 0; i < workerNum; i++ {
 		go ret.worker(msgHandler)
 	}
@@ -92,7 +95,7 @@ func sendMsg[T any](mq *SimpleMQ[T], msgHandler func(T)) {
 
 // 缩小队列的容量(调用需要加锁)
 func (mq *SimpleMQ[T]) tryShrink() {
-	if mq.que.Len() < mq.que.Cap()/2 {
+	if mq.que.Len() < mq.que.Cap()/2 && mq.que.Cap() > mq.queMinCap {
 		newCap := mq.que.Cap() / 2
 		// 释放内存
 		mq.que.Resize(newCap)
