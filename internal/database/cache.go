@@ -10,33 +10,40 @@ import (
 var videoInfoCacher cache.Cacher[uint, models.VideoCacheModel]
 var videoCacheInitOnce sync.Once
 
+func InitVideoInfoCacher(cap int) {
+	videoCacheInitOnce.Do(func() {
+		videoInfoCacher = cache.NewPriorCircularMap[uint, models.VideoCacheModel](cap)
+	})
+}
+
 // GetVideoInfoCacher
 // 获取视频信息缓存器,请不要写入结构体中的指针或引用类型，这是并发不安全的
 func GetVideoInfoCacher() cache.Cacher[uint, models.VideoCacheModel] {
-	videoCacheInitOnce.Do(func() {
-
-	})
 	return videoInfoCacher
 }
 
-var videoCommentCacher cache.Cacher[uint, []models.CommentModel]
-var videoCommentCacheInitOnce sync.Once
+var videoCommentCacher cache.Cacher[uint, models.CommentModel]
+var videoCommentCacherInitOnce sync.Once
 
-func GetVideoCommentCacher() cache.Cacher[uint, []models.CommentModel] {
-	videoCommentCacheInitOnce.Do(func() {
-
+func InitVideoCommentCacher(cap int) {
+	videoCommentCacherInitOnce.Do(func() {
+		videoCommentCacher = cache.NewARC[uint, models.CommentModel](cap)
 	})
+}
+
+func GetVideoCommentCacher() cache.Cacher[uint, models.CommentModel] {
 	return videoCommentCacher
 }
 
 var userCacher cache.Cacher[uint, models.UserCacheModel]
 var userCacheInitOnce sync.Once
 
-// GetUserCacher
-// 获取用户信息缓存器,请不要写入结构体中的指针或引用类型，这是并发不安全的
-func GetUserCacher() cache.Cacher[uint, models.UserCacheModel] {
+func InitUserCacher(cap int) {
 	userCacheInitOnce.Do(func() {
-
+		userCacher = cache.NewARC[uint, models.UserCacheModel](cap)
 	})
+}
+
+func GetUserCacher() cache.Cacher[uint, models.UserCacheModel] {
 	return userCacher
 }

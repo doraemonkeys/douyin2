@@ -59,13 +59,13 @@ type VideoCacheModel struct {
 // Weight 计算视频权重
 // 根据视频的创建时间和点赞数进行排序，
 // 创建的时间越近，点赞数越多的视频排在前面
-func (v *VideoCacheModel) Weight() int64 {
+func (v VideoCacheModel) Weight() int64 {
 	var TimeWeight float64 = 0.1
 	var weight int64 = int64(v.LikesCount) + int64(v.CommentsCount) + int64(TimeWeight*float64(v.CreatedAt.Unix()))
 	return weight
 }
 
-func (v *VideoCacheModel) Less(other *VideoCacheModel) bool {
+func (v VideoCacheModel) Less(other VideoCacheModel) bool {
 	return v.Weight() < other.Weight()
 }
 

@@ -15,26 +15,25 @@ type Weighter[T any] interface {
 
 type pairs[K comparable, T Weighter[T]] struct {
 	Key K
-	Val T
+	Val *T
 }
 
 func (p pairs[K, T]) Less(other pairs[K, T]) bool {
-	return p.Val.Less(other.Val)
+	return (*p.Val).Less(*other.Val)
 }
 
-func newPairs[K comparable, T Weighter[T]](key K, val T) pairs[K, T] {
+func newPairs[K comparable, T Weighter[T]](key K, val *T) pairs[K, T] {
 	return pairs[K, T]{Key: key, Val: val}
 }
 
+// PriorCircularMap 通过Key索引，通过Value的权重排序，权重越大，缓存级别越高，越不容易被淘汰。
+// 优先队列缓存存在一个问题，如果value频繁无规律变化，那么优先队列的排序会频繁变化，导致性能下降。
+// 如果value的权重一直呈现上升或下降趋势，则在堆调整的过程中会比较迅速，影响不大。
 type PriorCircularMap[K comparable, T Weighter[T]] struct {
 	cache    map[K]*T
 	capacity int
 	//priorityQueu is not thread safe, so we also need a lock ,so share the same lock with cache
-	cacheLock sync.RWMutex
-	// plan to persist
-	planPersist     map[K]*T
-	persistLock     sync.Mutex
-	persistenter    Persistenter[K, T]
+	cacheLock       sync.RWMutex
 	priorityQueue   *priorityQueue.PriorityQueue[pairs[K, T]]
 	minWeightVal    *T
 	minWeightValKey K
@@ -44,17 +43,10 @@ func NewPriorCircularMap[K comparable, T Weighter[T]](cap int) *PriorCircularMap
 	return &PriorCircularMap[K, T]{
 		cache: make(map[K]*T, cap),
 		//cap/10+1 is magic number, it is the best value i guess
-		planPersist:   make(map[K]*T, cap/10+1),
 		cacheLock:     sync.RWMutex{},
-		persistLock:   sync.Mutex{},
 		capacity:      cap,
 		priorityQueue: priorityQueue.NewPriorityQueue[pairs[K, T]](),
 	}
-}
-
-// SetPersistent sets the persistent of the cache.
-func (c *PriorCircularMap[K, T]) SetPersistent(persistent Persistenter[K, T]) {
-	c.persistenter = persistent
 }
 
 func (c *PriorCircularMap[K, T]) Cap() int {
@@ -82,38 +74,36 @@ func (c *PriorCircularMap[K, T]) Get(key K) (T, bool) {
 // If the cache is full, only the value's weight is greater than the minimum weight in the cache,
 // the value will be replaced.Otherwise, the value will not be set, and the function will return false.
 func (c *PriorCircularMap[K, T]) Set(key K, val T) bool {
-	if c.Len() < c.Cap() {
+	// cache is full
+	if c.Len() == c.Cap() && val.Less((*c.minWeightVal)) {
+		return false
+	}
+	_, exist := c.cache[key]
+	if c.Len() < c.Cap() || exist {
+		var valPtr = &val
 		c.cacheLock.Lock()
-		c.cache[key] = &val
-		c.priorityQueue.Push(newPairs(key, val))
+		c.cache[key] = valPtr
+		c.priorityQueue.Push(newPairs(key, valPtr))
 		if c.minWeightVal == nil || val.Less((*c.minWeightVal)) {
-			c.minWeightVal = &val
+			c.minWeightVal = valPtr
 			c.minWeightValKey = key
 		}
 		c.cacheLock.Unlock()
-
-		c.persistLock.Lock()
-		c.planPersist[key] = &val
-		c.persistLock.Unlock()
 		return true
 	}
-	// cache is full
-	if val.Less((*c.minWeightVal)) {
-		return false
-	}
+
+	// cache is full and val is greater than the minimum weight in the cache
+	var valPtr = &val
 	c.cacheLock.Lock()
 	delete(c.cache, c.minWeightValKey)
-	c.cache[key] = &val
+	c.cache[key] = valPtr
 	c.priorityQueue.Pop()
-	c.priorityQueue.Push(newPairs(key, val))
+	c.priorityQueue.Push(newPairs(key, valPtr))
 	var temp = c.priorityQueue.Top()
-	c.minWeightVal = &temp.Val
+	c.minWeightVal = temp.Val
 	c.minWeightValKey = temp.Key
 	c.cacheLock.Unlock()
 
-	c.persistLock.Lock()
-	c.planPersist[key] = &val
-	c.persistLock.Unlock()
 	return true
 }
 
@@ -156,47 +146,51 @@ func (c *PriorCircularMap[K, T]) GetMulti(keys []K) map[K]T {
 	return result
 }
 
-// // SetMulti sets the values associated with the keys.
-// func (c *CirCurMap) SetMulti(keyvals map[cache.K]cache.T) error {
-// 	panic("not implemented") // TODO: Implement
-// }
+// SetMult sets the values associated with the keys.
+// If the key is already in the cache, it will be replaced.
+// If the cache is full, only the value's weight is greater than the minimum weight in the cache,
+// the value will be replaced.Otherwise, the value will not be set, and the function will return false.
+func (c *PriorCircularMap[K, T]) SetMulti(kvs map[K]T) []bool {
+	var result = make([]bool, len(kvs))
+	var i = 0
+	for key, val := range kvs {
+		result[i] = c.Set(key, val)
+		i++
+	}
+	return result
+}
 
-// // DeleteMulti deletes the values associated with the keys.
-// func (c *CirCurMap) DeleteMulti(keys []cache.K) error {
-// 	panic("not implemented") // TODO: Implement
-// }
+// DeleteMult deletes the values associated with the keys.
+func (c *PriorCircularMap[K, T]) DeleteMulti(keys []K) {
+	c.cacheLock.Lock()
+	for _, key := range keys {
+		delete(c.cache, key)
+	}
+	c.cacheLock.Unlock()
+}
 
-// // SetExpire sets the value associated with the key and expire time.
-// func (c *CirCurMap) SetExpire(key cache.K, val cache.T, timeout int64) error {
-// 	panic("not implemented") // TODO: Implement
-// }
+// GetRandom returns a random value from the cache.
+func (c *PriorCircularMap[K, T]) GetRandom() (T, error) {
+	for _, v := range c.cache {
+		return *v, nil
+	}
+	var zero T
+	return zero, ErrorCacheEmpty
+}
 
-// // GetCapacity returns the capacity of the cache.
-// func (c *CirCurMap) GetCapacity() int64 {
-// 	panic("not implemented") // TODO: Implement
-// }
-
-// // GetUsed returns the used of the cache.
-// func (c *CirCurMap) GetUsed() int64 {
-// 	panic("not implemented") // TODO: Implement
-// }
-
-// // EnablePersistent enables the persistent of the cache.
-// func (c *CirCurMap) EnablePersistent(enable bool) error {
-// 	panic("not implemented") // TODO: Implement
-// }
-
-// // IsPersistentEnabled returns true if the persistent of the cache is enabled.
-// func (c *CirCurMap) IsPersistentEnabled() bool {
-// 	panic("not implemented") // TODO: Implement
-// }
-
-// // GetPersistent returns the persistent of the cache.
-// func (c *CirCurMap) GetPersistent() cache.Persistenter[cache.K, cache.T] {
-// 	panic("not implemented") // TODO: Implement
-// }
-
-// // SetPersistCycle sets the persist cycle of the cache.
-// func (c *CirCurMap) SetPersistCycle(cycle time.Duration) error {
-// 	panic("not implemented") // TODO: Implement
-// }
+// GetRandomMulti returns a random values from the cache.
+func (c *PriorCircularMap[K, T]) GetRandomMulti(count int) ([]T, error) {
+	if count > c.Len() {
+		count = c.Len()
+	}
+	var result = make([]T, count)
+	var i = 0
+	for _, v := range c.cache {
+		result[i] = *v
+		i++
+		if i == count {
+			break
+		}
+	}
+	return result, nil
+}

@@ -59,7 +59,7 @@ func InitLocalOSS(mysql *gorm.DB, basePath string) *LocalDouyinVedioSaver {
 	return globalSaver
 }
 
-// Save object to local,Return VedioUID,CoverUID
+// Save object to local,Return VedioUID, error
 func (s *LocalDouyinVedioSaver) Save(obj SimpleObject) (uid uint, err error) {
 	panic("implement me")
 }
