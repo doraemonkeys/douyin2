@@ -139,7 +139,7 @@ type QueryVideoListDTO struct {
 	UserId int64  `json:"user_id"`
 }
 
-func QueryVideoListHandler(c *gin.Context) {
+func QueryPublishListHandler(c *gin.Context) {
 	var queryVideoListDTO QueryVideoListDTO
 	err := c.ShouldBind(&queryVideoListDTO)
 	if err != nil {
@@ -159,32 +159,46 @@ func QueryVideoListHandler(c *gin.Context) {
 		response.ResponseError(c, response.ErrInvalidParams)
 		return
 	}
-	// 获取用户
-	user := c.MustGet("user").(app.User)
-	// 获取被查询的用户视频列表
-	targetUserVideoList, err := services.QueryVideoListByUserID(user.ID)
+	// 获取被查询的用户发布列表
+	targetUserVideoPublishList, err := services.QueryPublishListByAuthorID(uint(queryVideoListDTO.UserId))
 	if err != nil {
 		logrus.Error("get video list failed, err:", err)
 		response.ResponseError(c, response.ErrInvalidParams)
 		return
 	}
-	if len(targetUserVideoList) == 0 {
+	if len(targetUserVideoPublishList) == 0 {
 		logrus.Trace("video list is empty")
 		response.ResponseSuccess(c, response.EmptyVideoList)
 		return
 	}
-	// 查询用户是所有喜欢的视频
-	var likeVideoList []models.VideoModel
-	likeVideoList, _, _ = services.QueryLikeVideoListByUserID(user.ID)
-	var likeVideoListMap = make(map[uint]struct{})
-	for _, video := range likeVideoList {
-		likeVideoListMap[video.ID] = struct{}{}
+	// 获取查询者
+	user := c.MustGet("user").(app.User)
+	// 查询查询者所有喜欢的视频
+	var likeVideoIDs []uint
+	// 1. from cache
+	cacher := database.GetUserFavoriteCacher()
+	cacheData, exist := cacher.Get(user.ID)
+	if exist {
+		cacheData.VideoIDMap.Range(func(key, value interface{}) bool {
+			likeVideoIDs = append(likeVideoIDs, key.(models.UserLike_VideoAndAuthor).VideoID)
+			return true
+		})
+	} else {
+		// 2. from db
+		likeVideos, _, _ := services.QueryLikeVideoListByUserID(user.ID)
+		for _, video := range likeVideos {
+			likeVideoIDs = append(likeVideoIDs, video.ID)
+		}
 	}
-	// 查询用户是否关注了被查询的用户
+	var likeVideoListMap = make(map[uint]bool, len(likeVideoIDs))
+	for _, id := range likeVideoIDs {
+		likeVideoListMap[id] = true
+	}
+	// 查询者是否关注了被查询的用户
 	isFollowed := services.QueryUserFollowed(user.ID, targetUser.ID)
 	// 返回视频列表
 	var res response.QueryVideoListResponse
-	res.SetValues(targetUserVideoList, targetUser, likeVideoListMap, isFollowed)
+	res.SetValues(targetUserVideoPublishList, targetUser, likeVideoListMap, isFollowed)
 
 	res.StatusCode = response.Success
 	res.StatusMsg = response.QuerySuccessMsg

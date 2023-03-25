@@ -41,19 +41,14 @@ func (v *VideoModel) TableName() string {
 
 type VideoCacheModel struct {
 	gorm.Model
-	//Title 视频标题
-	Title string `gorm:"size:200"`
-	// 视频保存地址
-	//Path string `gorm:"size:200;unique"`
-	// 视频封面保存地址
-	//CoverPath    string `gorm:"size:200"`
-	StorageID     uint   `gorm:"unique_index"`
-	URL           string `gorm:"size:200"`
-	CoverURL      string `gorm:"size:200"`
-	AuthorID      uint
-	LikesCount    uint
-	CommentsCount uint
-	Author        UserCacheModel
+	Title        string `gorm:"size:200"`
+	StorageID    uint   `gorm:"unique_index"`
+	URL          string `gorm:"size:200"`
+	CoverURL     string `gorm:"size:200"`
+	AuthorID     uint
+	LikeCount    uint
+	CommentCount uint
+	//Author       UserCacheModel
 }
 
 // Weight 计算视频权重
@@ -61,7 +56,7 @@ type VideoCacheModel struct {
 // 创建的时间越近，点赞数越多的视频排在前面
 func (v VideoCacheModel) Weight() int64 {
 	var TimeWeight float64 = 0.1
-	var weight int64 = int64(v.LikesCount) + int64(v.CommentsCount) + int64(TimeWeight*float64(v.CreatedAt.Unix()))
+	var weight int64 = int64(v.LikeCount) + int64(v.CommentCount) + int64(TimeWeight*float64(v.CreatedAt.Unix()))
 	return weight
 }
 
@@ -79,8 +74,8 @@ func (v *VideoCacheModel) SetValue(other VideoModel) {
 	v.URL = other.URL
 	v.CoverURL = other.CoverURL
 	v.AuthorID = other.AuthorID
-	v.LikesCount = other.LikeCount
-	v.CommentsCount = other.CommentCount
+	v.LikeCount = other.LikeCount
+	v.CommentCount = other.CommentCount
 }
 
 func (v *VideoModel) SetValueFromCacheModel(other VideoCacheModel) {
@@ -93,6 +88,6 @@ func (v *VideoModel) SetValueFromCacheModel(other VideoCacheModel) {
 	v.URL = other.URL
 	v.CoverURL = other.CoverURL
 	v.AuthorID = other.AuthorID
-	v.LikeCount = other.LikesCount
-	v.CommentCount = other.CommentsCount
+	v.LikeCount = other.LikeCount
+	v.CommentCount = other.CommentCount
 }

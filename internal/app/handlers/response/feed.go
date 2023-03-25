@@ -14,33 +14,9 @@ type VideoListResponse struct {
 	VideoList []VideoList `json:"video_list"`
 }
 
-type Author struct {
-	ID            int    `json:"id"`
-	Name          string `json:"name"`
-	FollowCount   int    `json:"follow_count"`
-	FollowerCount int    `json:"follower_count"`
-	IsFollow      bool   `json:"is_follow"`
-}
-
-type VideoList struct {
-	ID            int    `json:"id"`
-	Author        Author `json:"author"`
-	PlayURL       string `json:"play_url"`
-	CoverURL      string `json:"cover_url"`
-	FavoriteCount int    `json:"favorite_count"`
-	CommentCount  int    `json:"comment_count"`
-	IsFavorite    bool   `json:"is_favorite"`
-	Title         string `json:"title"`
-}
-
-func (a *Author) SetValues(user models.UserModel) {
-	a.ID = int(user.ID)
-	a.Name = user.Username
-	a.FollowCount = int(user.FollowerCount)
-	a.FollowerCount = int(user.FanCount)
-}
-
-func (v *VideoListResponse) SetValues(videoList []models.VideoModel, UsersMap map[uint]models.UserModel) {
+// SetValues 设置值
+// videoList 中的视频需包含作者信息
+func (v *VideoListResponse) SetValues(videoList []models.VideoModel, FollowedMap map[uint]bool) {
 	var nextTime int = math.MaxInt
 	for _, val := range videoList {
 		var video VideoList
@@ -50,7 +26,7 @@ func (v *VideoListResponse) SetValues(videoList []models.VideoModel, UsersMap ma
 		video.FavoriteCount = int(val.LikeCount)
 		video.CommentCount = int(val.CommentCount)
 		video.Title = val.Title
-		video.Author.SetValues(UsersMap[val.AuthorID])
+		video.Author.SetValue(val.Author, FollowedMap[val.AuthorID])
 		if int(val.CreatedAt.Unix()) < nextTime {
 			nextTime = int(val.CreatedAt.Unix())
 		}

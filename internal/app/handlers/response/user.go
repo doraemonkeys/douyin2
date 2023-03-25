@@ -11,3 +11,5 @@ type User struct {
 	FollowerCount int    `json:"follower_count"`
 	IsFollow      bool   `json:"is_follow"`
 }
+
+// 关注列表应该在前端做缓存，不然每次都要请求服务器，太浪费资源了

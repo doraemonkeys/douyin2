@@ -4,8 +4,10 @@ import "errors"
 
 type Cacher[K comparable, T any] interface {
 	// Get returns the value associated with the key.
+	// Returns true if an eviction occurred.
 	Get(key K) (T, bool)
 	// Set sets the value associated with the key.
+	// Returns true if the value was set.
 	Set(key K, val T) bool
 	// Delete deletes the value associated with the key.
 	Delete(key K)
@@ -34,7 +36,7 @@ type Cacher[K comparable, T any] interface {
 	Cap() int
 
 	// Resize resizes the cache.
-	// Resize(cap int64)
+	// Resize(cap int)
 }
 
 var (

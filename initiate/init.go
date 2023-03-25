@@ -15,6 +15,13 @@ func Run() {
 	initMysql()
 	initVideoStorageServer()
 
+	// init cache
+	var cacheSize = 1000
+	database.InitVideoInfoCacher(cacheSize)
+	database.InitVideoCommentCacher(cacheSize)
+	database.InitUserCacher(cacheSize)
+	database.InitUserFavoriteCacher(cacheSize)
+
 	// main logic
 	runDouyinServer()
 }

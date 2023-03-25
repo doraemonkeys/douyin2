@@ -32,7 +32,7 @@ func QueryUserById(id uint) (models.UserModel, error) {
 func GetUserById(id uint) (models.UserModel, error) {
 	var userReturn models.UserModel
 	// 从缓存中获取
-	cacher := database.GetUserCacher()
+	cacher := database.GetUserInfoCacher()
 	user, exist := cacher.Get(id)
 	if !exist {
 		var err error
@@ -114,4 +114,49 @@ func QueryUserFollowed(userID uint, followID uint) bool {
 		return false
 	}
 	return true
+}
+
+// 判断某个用户关注了列表中的哪些用户
+func QueryUserFollowedMap(userID uint, followIDList []uint) (map[uint]bool, error) {
+	var UserFollows []models.UserFollowerModel
+	db := database.GetMysqlDB()
+	logrus.Debug("看看这里的sql语句对不对")
+	err := db.Debug().
+		Model(&UserFollows).
+		Where(models.UserFollowerModelTable_UserID+" = ? AND "+
+			models.UserFollowerModelTable_FollowerID+" IN (?)", userID, followIDList).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		logrus.Error("query user failed, err: ", err)
+		return nil, err
+	}
+
+	followedMap := make(map[uint]bool)
+	for _, userFollow := range UserFollows {
+		followedMap[userFollow.FollowerID] = true
+	}
+	return followedMap, nil
+}
+
+func QueryFavorVideoListIDByUserID(userID uint) (likeVideos []uint, err error) {
+	return nil, nil
+}
+
+func QueryUserListByUserIDList(userIDList []uint) (userList []models.UserModel, err error) {
+	return nil, nil
+}
+
+func QueryUserMapsByUserIDList(userIDList []uint) (userList map[uint]models.UserModel, err error) {
+	return nil, nil
+}
+
+func QueryFollowedMapByUserIDList(id uint, userIDList []uint) (followedMap map[uint]bool, err error) {
+	return nil, nil
+}
+
+func QueryFollowedMapByUserIDMap[T any](id uint, userIDMap map[uint]T) (followedMap map[uint]bool, err error) {
+	return nil, nil
 }

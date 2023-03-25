@@ -74,13 +74,21 @@ func (c *myARC[K, T]) GetRandomMulti(count int) ([]T, error) {
 		count = c.Len()
 	}
 	var vals []T
-	keys := c.arc.Keys() // 返回的keys是乱序的
+	keys := c.arc.Keys() // 返回的keys是乱序的,但并不是随机的
 	if len(keys) == 0 {
 		return vals, ErrorCacheEmpty
 	}
-	for i := 0; i < count; i++ {
-		val, _ := c.arc.Get(keys[i])
+	var keysMap = make(map[K]struct{}, len(keys))
+	// 使用map乱序一下
+	for _, key := range keys {
+		keysMap[key] = struct{}{}
+	}
+	for k := range keysMap {
+		val, _ := c.arc.Get(k)
 		vals = append(vals, val)
+		if len(vals) == count {
+			break
+		}
 	}
 	return vals, nil
 }

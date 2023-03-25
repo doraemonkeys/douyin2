@@ -41,14 +41,15 @@ func (p *proxyFeedVideoList) DoNoToken(feedRequest FeedVideeDTO) {
 	}
 	logrus.Debug("latestTime: ", feedRequest.LatestTime, "foramtedTime: ", foramtedTime)
 
-	videoModels, UserMaps, err := services.GetVideoAndUserListFeedByLastTime(foramtedTime, FeedVedioListLimit)
+	videoModels, err := services.GetVideoAndAuthorListFeedByLastTime(foramtedTime, FeedVedioListLimit)
 	if err != nil {
 		res.CommonResponse.StatusCode = response.Failed
 		res.CommonResponse.StatusMsg = response.ErrServerInternal
 		p.Context.JSON(http.StatusOK, res)
 		return
 	}
-	res.SetValues(videoModels, UserMaps)
+	var dummyMap map[uint]bool = make(map[uint]bool)
+	res.SetValues(videoModels, dummyMap)
 	res.CommonResponse.StatusCode = response.Success
 	p.Context.JSON(http.StatusOK, res)
 }
@@ -61,8 +62,29 @@ func (p *proxyFeedVideoList) DoHasToken(feedRequest FeedVideeDTO) {
 		// middleware已经处理了错误，这里不需要处理
 		return
 	}
-	//后期可以根据用户的喜好或者关注的人来推送视频
-	p.DoNoToken(feedRequest)
+
+	var res response.VideoListResponse
+	foramtedTime, err := utils.GetFormatedTimeFromUnix(feedRequest.LatestTime, models.DataBaseTimeFormat)
+	if err != nil {
+		response.ResponseError(p.Context, response.ErrServerInternal)
+	}
+	logrus.Debug("latestTime: ", feedRequest.LatestTime, "foramtedTime: ", foramtedTime)
+
+	videoModels, err := services.GetVideoAndAuthorListFeedByLastTime(foramtedTime, FeedVedioListLimit)
+	if err != nil {
+		res.CommonResponse.StatusCode = response.Failed
+		res.CommonResponse.StatusMsg = response.ErrServerInternal
+		p.Context.JSON(http.StatusOK, res)
+		return
+	}
+	var UserIDs []uint
+	for _, video := range videoModels {
+		UserIDs = append(UserIDs, video.Author.ID)
+	}
+	FollowedMap, err := services.QueryFollowedMapByUserIDList(feedRequest.User.ID, UserIDs)
+	res.SetValues(videoModels, FollowedMap)
+	res.CommonResponse.StatusCode = response.Success
+	p.Context.JSON(http.StatusOK, res)
 }
 
 // 不限制登录状态，返回按投稿时间倒序的视频列表，视频数由服务端控制，单次最多30个

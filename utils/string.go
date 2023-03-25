@@ -10,9 +10,9 @@ func StrLen(str string) int {
 	return len([]rune(str))
 }
 
-// getFormatedTime
-// 时间戳秒 -> format time
-// if rawTime is "" , return current time
+// getFormatedTime。
+// 时间戳秒 -> format time。
+// if rawTime is "" , return current time。
 func GetFormatedTimeFromUnix(rawTime string, format string) (string, error) {
 	if rawTime == "" {
 		return time.Now().Format(format), nil

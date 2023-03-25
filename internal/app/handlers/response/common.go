@@ -3,8 +3,28 @@ package response
 import (
 	"net/http"
 
+	"github.com/Doraemonkeys/douyin2/internal/app/models"
 	"github.com/gin-gonic/gin"
 )
+
+type Author struct {
+	ID            int    `json:"id"`
+	Name          string `json:"name"`
+	FollowCount   int    `json:"follow_count"`
+	FollowerCount int    `json:"follower_count"`
+	IsFollow      bool   `json:"is_follow"`
+}
+
+type VideoList struct {
+	ID            int    `json:"id"`
+	Author        Author `json:"author"`
+	PlayURL       string `json:"play_url"`
+	CoverURL      string `json:"cover_url"`
+	FavoriteCount int    `json:"favorite_count"`
+	CommentCount  int    `json:"comment_count"`
+	IsFavorite    bool   `json:"is_favorite"`
+	Title         string `json:"title"`
+}
 
 // status code
 const (
@@ -53,3 +73,27 @@ func ResponseSuccess(c *gin.Context, msg string) {
 	res.StatusMsg = msg
 	c.JSON(http.StatusOK, res)
 }
+
+func (a *Author) SetValue(user models.UserModel, isFollow bool) {
+	a.ID = int(user.ID)
+	a.Name = user.Username
+	a.FollowCount = int(user.FollowerCount)
+	a.FollowerCount = int(user.FanCount)
+	a.IsFollow = isFollow
+}
+
+// func (a *Author) SetValueFromCache(cache models.UserLikeCache) {
+// 	var user models.UserModel
+// 	user.SetValueFromCacheModel(cache.VideoCache.Author)
+// 	a.SetValue(user, cache.IsFollowed)
+// }
+
+// func (v *VideoList) SetValueFromUserLikeCache(cache models.UserLikeCache) {
+// 	v.ID = int(cache.VideoCache.AuthorID)
+// 	v.PlayURL = cache.VideoCache.URL
+// 	v.CoverURL = cache.VideoCache.CoverURL
+// 	v.FavoriteCount = int(cache.VideoCache.LikeCount)
+// 	v.CommentCount = int(cache.VideoCache.CommentCount)
+// 	v.Title = cache.VideoCache.Title
+// 	v.Author.SetValueFromCache(cache)
+// }

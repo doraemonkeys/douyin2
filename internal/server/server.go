@@ -56,11 +56,11 @@ func initDouyinRouter() *gin.Engine {
 	baseGroup.POST("/user/login/", middleware.UserLoginHandler)
 	baseGroup.GET("/user/", middleware.JWTMiddleWare(), user.GetUserInfoHandler)
 	baseGroup.POST("/publish/action/", middleware.JWTMiddleWare(), publish.PublishVedioHandler)
-	baseGroup.GET("/publish/list/", middleware.JWTMiddleWare(), publish.QueryVideoListHandler)
+	baseGroup.GET("/publish/list/", middleware.JWTMiddleWare(), publish.QueryPublishListHandler)
 
 	// //extend 1
 	baseGroup.POST("/favorite/action/", middleware.JWTMiddleWare(), favorite.PostFavorHandler)
-	// baseGroup.GET("/favorite/list/", middleware.NoAuthToGetUserId(), video.QueryFavorVideoListHandler)
+	baseGroup.GET("/favorite/list/", middleware.JWTMiddleWare(), favorite.QueryFavorVideoListHandler)
 	// baseGroup.POST("/comment/action/", middleware.JWTMiddleWare(), comment.PostCommentHandler)
 	// baseGroup.GET("/comment/list/", middleware.JWTMiddleWare(), comment.QueryCommentListHandler)
 
