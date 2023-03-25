@@ -207,6 +207,9 @@ func QueryPublishListHandler(c *gin.Context) {
 
 	res.StatusCode = response.Success
 	res.StatusMsg = response.QuerySuccessMsg
+	for _, video := range res.VideoList {
+		app.ZeroCheck(video.ID, video.Author.ID)
+	}
 	c.JSON(http.StatusOK, res)
 
 }

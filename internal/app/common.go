@@ -15,25 +15,14 @@ type User struct {
 
 const UserKeyName = "user"
 
-func ZeroCheck[T comparable](v T) bool {
+func ZeroCheck[T comparable](v ...T) bool {
 	if !config.IsDebug() {
-		return true
+		return false
 	}
-	logrus.Debugf("zero value: %v", v)
 	var zero T
-	if v == zero {
-		logrus.Errorf("zero value: %v", v)
-	}
-	return v == zero
-}
-
-func ZeroListCheck[T comparable](v []T) bool {
-	if !config.IsDebug() {
-		return true
-	}
 	for _, item := range v {
-		if ZeroCheck(item) {
-			return true
+		if item == zero {
+			logrus.Errorf("zero value: %v", v)
 		}
 	}
 	return false

@@ -3,6 +3,7 @@ package user
 import (
 	"net/http"
 
+	"github.com/Doraemonkeys/douyin2/internal/app"
 	"github.com/Doraemonkeys/douyin2/internal/app/handlers/response"
 	"github.com/Doraemonkeys/douyin2/internal/app/services"
 	"github.com/gin-gonic/gin"
@@ -58,5 +59,6 @@ func UserRegisterHandler(c *gin.Context) {
 		return
 	}
 	res.CommonResponse.StatusCode = response.Success
+	app.ZeroCheck(res.UserID)
 	c.JSON(http.StatusOK, res)
 }

@@ -58,5 +58,6 @@ func GetUserInfoHandler(c *gin.Context) {
 	res.User.IsFollow = services.QueryUserFollowed(user.ID, getUserInfoDTO.UserID)
 
 	res.StatusCode = response.Success
+	app.ZeroCheck(res.User.ID)
 	c.JSON(200, res)
 }

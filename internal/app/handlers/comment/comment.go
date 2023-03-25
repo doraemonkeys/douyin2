@@ -162,7 +162,9 @@ func queryCommentListHandler_CacheHit(c *gin.Context, commentsCache models.Comme
 	}
 	res.CommentList = CommentList
 	res.StatusCode = response.Success
-	//logrus.Debug("QueryCommentListHandler: res: ", res)
+	for _, val := range res.CommentList {
+		app.ZeroCheck(val.ID, val.User.ID)
+	}
 	c.JSON(http.StatusOK, res)
 }
 
@@ -197,6 +199,9 @@ func queryCommentListHandler_CacheMiss(c *gin.Context, dto QueryCommentListDTO) 
 	}
 	res.CommentList = CommentList
 	res.StatusCode = response.Success
+	for _, val := range res.CommentList {
+		app.ZeroCheck(val.ID, val.User.ID)
+	}
 	c.JSON(http.StatusOK, res)
 }
 

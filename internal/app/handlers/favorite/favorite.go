@@ -105,7 +105,7 @@ func queryFavorVideoListHandler_CacheHit(c *gin.Context, queryFavorVideoListDTO 
 	for i, val := range videoLikeList {
 		videoIDs[i] = val.VideoID
 	}
-	app.ZeroListCheck(videoLikeList)
+	app.ZeroCheck(videoLikeList...)
 	videoAndAuthorInfos, err := services.GetVideoListAndAuthorByVideoIDList(videoIDs)
 	if err != nil {
 		logrus.Error("get video list failed, err:", err)
@@ -134,6 +134,9 @@ func queryFavorVideoListHandler_CacheHit(c *gin.Context, queryFavorVideoListDTO 
 	}
 	res.SetValues(videoAndAuthorInfos, FollowedMap)
 	res.StatusCode = response.Success
+	for _, val := range res.VideoList {
+		app.ZeroCheck(val.ID, val.Author.ID)
+	}
 	c.JSON(200, res)
 }
 
@@ -146,7 +149,7 @@ func queryFavorVideoListHandler_CacheMiss(c *gin.Context, queryFavorVideoListDTO
 		response.ResponseError(c, response.ErrServerInternal)
 		return
 	}
-	app.ZeroListCheck(favorVideoIDList)
+	app.ZeroCheck(favorVideoIDList...)
 	// 获取视频列表
 	videoList, err := services.GetVideoListAndAuthorByVideoIDList(favorVideoIDList)
 	if err != nil {
@@ -169,5 +172,8 @@ func queryFavorVideoListHandler_CacheMiss(c *gin.Context, queryFavorVideoListDTO
 	}
 	res.SetValues(videoList, followedMap)
 	res.StatusCode = response.Success
+	for _, val := range res.VideoList {
+		app.ZeroCheck(val.ID, val.Author.ID)
+	}
 	c.JSON(200, res)
 }
