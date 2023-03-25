@@ -52,6 +52,14 @@ func GetVedioConfig() VedioConfig {
 	return allConfig.Vedio
 }
 
+func IsDebug() bool {
+	if log.PraseLevel(GetLogConfig().Level) < log.PraseLevel("debug") {
+		return false
+	} else {
+		return true
+	}
+}
+
 func defaultLogConfig() log.LogConfig {
 	var Config log.LogConfig
 	Config.DateSplit = true
