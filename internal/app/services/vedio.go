@@ -7,6 +7,8 @@ import (
 
 	"github.com/Doraemonkeys/douyin2/internal/app/handlers/response"
 	"github.com/Doraemonkeys/douyin2/internal/app/models"
+	"github.com/Doraemonkeys/douyin2/internal/pkg/cache"
+	"github.com/Doraemonkeys/douyin2/utils"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 
@@ -26,6 +28,8 @@ const (
 	ErrDuplicate = "重复插入"
 	// 删除不存在的记录
 	ErrDeleteNotExists = "删除不存在的记录"
+	// 数据库为空
+	ErrDBEmpty = "数据库为空"
 )
 
 const (
@@ -37,14 +41,15 @@ const (
 // 查询MySQL，返回按投稿时间倒序的视频列表，视频数由服务端控制，limit为最大值，
 // foramtedTime 为格式化后的时间，可能为：2023-03-20 04:16:17.648。
 // 查询的数据会尝试存入Cache。
-func QueryVideoAndUserListByLastTime(foramtedTime string, limit int) ([]models.VideoModel, error) {
+func QueryVideoAndUserListByLastTime(lastTime int64, limit int) ([]models.VideoModel, error) {
 	if limit <= 0 {
 		return nil, errors.New(ErrParam)
 	}
+	foramtedTime := utils.GetFormatedTimeFromUnixMilli(lastTime, models.DataBaseTimeFormat)
 	var videos []models.VideoModel
 	db := database.GetMysqlDB()
 	created_at := models.VideoModelTable_CreatedAt
-	err := db.Debug().Where(created_at+" <= ?", foramtedTime).Order(created_at + " desc").Limit(limit).Find(&videos).Error
+	err := db.Debug().Where(created_at+" < ?", foramtedTime).Order(created_at + " desc").Limit(limit).Find(&videos).Error
 	if err != nil {
 		return nil, err
 	}
@@ -91,25 +96,30 @@ func QueryVideoAndUserListByLastTime(foramtedTime string, limit int) ([]models.V
 	return videos, nil
 }
 
-// GetVideoAndAuthorListFeedByLastTime 返回的VideoModel切片中包含Author信息
+// GetVideoAndAuthorListFeedByLastTime 返回的VideoModel切片中包含Author信息。
+// lastTime为时间戳(毫秒)。
 // 查询MySQL和Cache，返回视频列表(热门limit*2/3 + 新发布limit*1/3)，视频数由服务端控制，limit为最大值。
 // 注意不能使用返回的结构体中的指针或引用类型，可能为nil。
-func GetVideoAndAuthorListFeedByLastTime(foramtedTime string, limit int) ([]models.VideoModel, error) {
+func GetVideoAndAuthorListFeedByLastTime(lastTime int64, limit int) ([]models.VideoModel, error) {
 	// 从Cache中获取符合要求的视频列表(热门limit*(2/3))
 	var hotRate = 2.0 / 3.0
 	// 热门视频数，向上取整
 	var hotLimit = math.Ceil(float64(limit) * hotRate)
 	cacher := database.GetVideoInfoCacher()
-	videosCache, err := cacher.GetRandomMulti(int(hotLimit))
-	if err != nil {
+	videosCache, err := cacher.PeekRandomMulti(int(hotLimit))
+	if err != nil && !errors.Is(err, cache.ErrorCacheEmpty) {
 		return nil, err
 	}
-	// 向videos1中添加作者信息
+	// 向videosCache中添加作者信息
 	// 1. from cache
 	var videos1 []models.VideoModel
 	userCacher := database.GetUserInfoCacher()
 	var cacheMiss = make([]uint, 0)
 	for _, v := range videosCache {
+		// 根据lastTime从cache中获取符合要求的视频列表
+		if v.CreatedAt.UnixMilli() >= lastTime {
+			continue
+		}
 		var temp models.VideoModel
 		temp.SetValueFromCacheModel(v)
 		user, exist := userCacher.Get(v.AuthorID)
@@ -120,6 +130,7 @@ func GetVideoAndAuthorListFeedByLastTime(foramtedTime string, limit int) ([]mode
 		}
 		videos1 = append(videos1, temp)
 	}
+	logrus.Trace("GetVideoListFeedByLastTime from cache：", videos1)
 	// 2. from mysql 处理cache miss
 	if len(cacheMiss) > 0 {
 		Users, err := QueryUserListByUserIDList(cacheMiss)
@@ -142,13 +153,16 @@ func GetVideoAndAuthorListFeedByLastTime(foramtedTime string, limit int) ([]mode
 	//var UsersMap = make(map[uint]models.UserModel)
 	// 从MySQL中获取符合要求的视频列表(新发布limit*(1/3))
 	if newLimit > 0 {
-		videos2, err = QueryVideoAndUserListByLastTime(foramtedTime, int(newLimit))
+		videos2, err = QueryVideoAndUserListByLastTime(lastTime, int(newLimit))
 		if err != nil {
 			return nil, err
 		}
 	}
 	// 合并两个视频列表
 	Videos := append(videos1, videos2...)
+	if len(Videos) == 0 {
+		return nil, errors.New(ErrDBEmpty)
+	}
 	return Videos, nil
 }
 
@@ -385,4 +399,72 @@ func GetVideoListAndAuthorByVideoIDList(videoIDList []uint) ([]models.VideoModel
 		}
 	}
 	return videos, nil
+}
+
+func GetUser_LikeVideoIDList_And_AuthorIDsFollowedMap_ByUserID(userID uint) (likeVideoIDList []uint, idsFollowedMap map[uint]bool, err error) {
+	// 获取查询者所有喜欢的视频
+	var likeVideoIDs []uint
+	// 1. from cache
+	cacher := database.GetUserFavoriteCacher()
+	cacheData, exist := cacher.Get(userID)
+	if exist {
+		idsFollowedMap = make(map[uint]bool)
+		cacheData.VideoIDMap.Range(func(key, value interface{}) bool {
+			temp := value.(models.UserLike_VideoAndAuthor)
+			likeVideoIDs = append(likeVideoIDs, temp.VideoID)
+			idsFollowedMap[temp.AuthorID] = temp.IsFollowed
+			return true
+		})
+		return likeVideoIDs, idsFollowedMap, nil
+	}
+	// 2. from db
+	likeVideos, _, _ := QueryLikeVideoListByUserID(userID)
+	authorIds := make([]uint, 0)
+	for _, video := range likeVideos {
+		likeVideoIDs = append(likeVideoIDs, video.ID)
+		authorIds = append(authorIds, video.AuthorID)
+	}
+	idsFollowedMap, err = QueryFollowedMapByUserIDList(userID, authorIds)
+	if err != nil {
+		return nil, nil, err
+	}
+	return likeVideoIDs, idsFollowedMap, nil
+}
+
+func GetUserLikeVideoIDListByUserID(userID uint) (likeVideoIDList []uint, err error) {
+	// 获取查询者所有喜欢的视频
+	var likeVideoIDs []uint
+	// 1. from cache
+	cacher := database.GetUserFavoriteCacher()
+	cacheData, exist := cacher.Get(userID)
+	if exist {
+		cacheData.VideoIDMap.Range(func(key, value interface{}) bool {
+			likeVideoIDs = append(likeVideoIDs, value.(models.UserLike_VideoAndAuthor).VideoID)
+			return true
+		})
+		return likeVideoIDs, nil
+	}
+	// 2. from db
+	likeVideos, _, _ := QueryLikeVideoListByUserID(userID)
+	for _, video := range likeVideos {
+		likeVideoIDs = append(likeVideoIDs, video.ID)
+	}
+	return likeVideoIDs, nil
+}
+
+func GetLikesVideoIDsByUserIDAndVideoIDs(userID uint, queryVIDs []uint) (likeVideoIDMap map[uint]bool, err error) {
+	// 获取查询者所有喜欢的视频
+	AllLikeVideoIDs, err := GetUserLikeVideoIDListByUserID(userID)
+	if err != nil {
+		return nil, err
+	}
+	likeVideoIDMap = make(map[uint]bool)
+	var allMap = make(map[uint]bool)
+	for _, v := range AllLikeVideoIDs {
+		allMap[v] = true
+	}
+	for _, v := range queryVIDs {
+		likeVideoIDMap[v] = allMap[v]
+	}
+	return likeVideoIDMap, nil
 }

@@ -136,6 +136,7 @@ func QueryUserFollowedMap(userID uint, followIDList []uint) (map[uint]bool, erro
 		Where(models.UserFollowerModelTable_UserID+" = ? AND "+
 			models.UserFollowerModelTable_FollowerID+" IN (?)", userID, followIDList).Error
 
+	logrus.Debug("UserFollows: ", UserFollows)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -154,7 +155,6 @@ func QueryUserFollowedMap(userID uint, followIDList []uint) (map[uint]bool, erro
 func QueryFavorVideoIDListByUserID(userID uint) (likeVideos []uint, err error) {
 	db := database.GetMysqlDB()
 	var userFavor []models.UserLikeModel
-	logrus.Debug("看看这里的sql语句对不对")
 	db.Debug().Where(models.UserLikeModelTable_UserID+" = ?", userID).Find(&userFavor)
 	for _, userFavor := range userFavor {
 		likeVideos = append(likeVideos, userFavor.VideoID)

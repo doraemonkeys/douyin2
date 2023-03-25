@@ -16,7 +16,7 @@ type VideoListResponse struct {
 
 // SetValues 设置值
 // videoList 中的视频需包含作者信息
-func (v *VideoListResponse) SetValues(videoList []models.VideoModel, FollowedMap map[uint]bool) {
+func (v *VideoListResponse) SetValues(videoList []models.VideoModel, QueryerLiks map[uint]bool, FollowedMap map[uint]bool) {
 	var nextTime int = math.MaxInt
 	for _, val := range videoList {
 		var video VideoList
@@ -26,12 +26,14 @@ func (v *VideoListResponse) SetValues(videoList []models.VideoModel, FollowedMap
 		video.FavoriteCount = int(val.LikeCount)
 		video.CommentCount = int(val.CommentCount)
 		video.Title = val.Title
+		video.IsFavorite = QueryerLiks[val.ID]
 		video.Author.SetValue(val.Author, FollowedMap[val.AuthorID])
-		if int(val.CreatedAt.Unix()) < nextTime {
-			nextTime = int(val.CreatedAt.Unix())
+		if int(val.CreatedAt.UnixMilli()) < nextTime {
+			nextTime = int(val.CreatedAt.UnixMilli())
 		}
 		v.VideoList = append(v.VideoList, video)
 	}
+	v.NextTime = nextTime
 	logrus.Trace("nextTime:", nextTime)
 	logrus.Trace("videoList:", v.VideoList)
 }

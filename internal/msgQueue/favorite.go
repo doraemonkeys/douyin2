@@ -32,9 +32,9 @@ func GetFavoriteMQ() messageQueue.MQ[FavoriteMSg] {
 }
 
 // 点赞消息队列
-func InitFavoriteMQ(msgHandler func(FavoriteMSg)) {
+func InitFavoriteMQ() {
 	favoriteMQInitOnce.Do(func() {
-		favoriteMQ = messageQueue.NewSimpleMQ(FavoriteWorkerNum, msgHandler)
+		favoriteMQ = messageQueue.NewSimpleMQ(FavoriteWorkerNum, FavoriteMsgHandler)
 	})
 }
 

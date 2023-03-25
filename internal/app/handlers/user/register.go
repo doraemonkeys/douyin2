@@ -15,6 +15,11 @@ type RegisterUserDTO struct {
 	Password string `json:"password" form:"password" binding:"required"`
 }
 
+const (
+	RegisterUserDTO_Username = "username"
+	RegisterUserDTO_Password = "password"
+)
+
 func UserRegisterHandler(c *gin.Context) {
 	var registerRequest RegisterUserDTO
 	var res response.RegisterResponse
@@ -26,8 +31,8 @@ func UserRegisterHandler(c *gin.Context) {
 	// 	return
 	// }
 	var ok1, ok2 bool
-	registerRequest.Username, ok1 = c.GetQuery("username")
-	registerRequest.Password, ok2 = c.GetQuery("password")
+	registerRequest.Username, ok1 = c.GetQuery(RegisterUserDTO_Username)
+	registerRequest.Password, ok2 = c.GetQuery(RegisterUserDTO_Password)
 	if !ok1 || !ok2 {
 		logrus.Debug("UserRegisterHandler error: ", "username or password is empty")
 		res.CommonResponse.StatusCode = response.Failed

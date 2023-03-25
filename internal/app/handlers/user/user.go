@@ -15,13 +15,17 @@ type GetUserInfoDTO struct {
 	Token  string `json:"token"`
 }
 
+const (
+	GetUserInfoDTO_UserID = "user_id"
+)
+
 // GetUserInfoHandler 获取用户信息
 func GetUserInfoHandler(c *gin.Context) {
 	var getUserInfoDTO GetUserInfoDTO
 	var res response.GetUserInfoResponse
 
 	//获取请求参数
-	id, _ := strconv.ParseUint(c.Query("user_id"), 10, 64)
+	id, _ := strconv.ParseUint(c.Query(GetUserInfoDTO_UserID), 10, 64)
 	getUserInfoDTO.UserID = uint(id)
 	if getUserInfoDTO.UserID == 0 {
 		res.StatusCode = response.Failed

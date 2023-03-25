@@ -5,6 +5,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/Doraemonkeys/douyin2/internal/app"
 	"github.com/Doraemonkeys/douyin2/internal/app/handlers/response"
@@ -32,6 +33,12 @@ type PublishVedioDTO struct {
 	Title string `json:"title"`
 }
 
+const (
+	PublishVedioDTO_Data  = "data"
+	PublishVedioDTO_Token = "token"
+	PublishVedioDTO_Title = "title"
+)
+
 func titleCheck(title string) bool {
 	if utils.StrLen(title) > models.VideoTitleMaxRuneLength {
 		return false
@@ -47,14 +54,14 @@ func titleCheck(title string) bool {
 
 func PublishVedioHandler(c *gin.Context) {
 	var publishRequest PublishVedioDTO
-	FileHeader, err := c.FormFile("data")
+	FileHeader, err := c.FormFile(PublishVedioDTO_Data)
 	if err != nil {
 		logrus.Error("receive file failed, err:", err)
 		response.ResponseError(c, response.ErrInvalidParams)
 		return
 	}
 	//title check
-	publishRequest.Title = c.PostForm("title")
+	publishRequest.Title = c.PostForm(PublishVedioDTO_Title)
 	if publishRequest.Title == "" {
 		response.ResponseError(c, ErrorVideoTitleEmpty)
 	}
@@ -93,7 +100,7 @@ func PublishVedioHandler(c *gin.Context) {
 	}
 	logrus.Trace("videoUrl:", videoUrl, "CoverUrl:", CoverUrl)
 	//获取User
-	user := c.MustGet("user").(app.User)
+	user := c.MustGet(app.UserKeyName).(app.User)
 	var videoModel models.VideoModel
 	videoModel.Title = publishRequest.Title
 	videoModel.StorageID = storageID
@@ -139,14 +146,22 @@ type QueryVideoListDTO struct {
 	UserId int64  `json:"user_id"`
 }
 
+const (
+	QueryVideoListDTO_Token  = "token"
+	QueryVideoListDTO_UserId = "user_id"
+)
+
 func QueryPublishListHandler(c *gin.Context) {
 	var queryVideoListDTO QueryVideoListDTO
-	err := c.ShouldBind(&queryVideoListDTO)
-	if err != nil {
+	var err error
+	strID, exist := c.GetQuery(QueryVideoListDTO_UserId)
+	queryVideoListDTO.UserId, err = strconv.ParseInt(strID, 10, 64)
+	if !exist || err != nil {
 		logrus.Error("bind queryVideoListDTO failed, err:", err)
 		response.ResponseError(c, response.ErrInvalidParams)
 		return
 	}
+	logrus.Trace("queryVideoListDTO:", queryVideoListDTO)
 
 	// 获取被查询的用户
 	targetUser, err := services.GetUserById(uint(queryVideoListDTO.UserId))
@@ -167,28 +182,18 @@ func QueryPublishListHandler(c *gin.Context) {
 		return
 	}
 	if len(targetUserVideoPublishList) == 0 {
-		logrus.Trace("video list is empty")
+		logrus.Trace("target user publish list is empty")
 		response.ResponseSuccess(c, response.EmptyVideoList)
 		return
 	}
 	// 获取查询者
-	user := c.MustGet("user").(app.User)
-	// 查询查询者所有喜欢的视频
-	var likeVideoIDs []uint
-	// 1. from cache
-	cacher := database.GetUserFavoriteCacher()
-	cacheData, exist := cacher.Get(user.ID)
-	if exist {
-		cacheData.VideoIDMap.Range(func(key, value interface{}) bool {
-			likeVideoIDs = append(likeVideoIDs, key.(models.UserLike_VideoAndAuthor).VideoID)
-			return true
-		})
-	} else {
-		// 2. from db
-		likeVideos, _, _ := services.QueryLikeVideoListByUserID(user.ID)
-		for _, video := range likeVideos {
-			likeVideoIDs = append(likeVideoIDs, video.ID)
-		}
+	user := c.MustGet(app.UserKeyName).(app.User)
+	// 查询查询者所有喜欢的视频id
+	likeVideoIDs, err := services.GetUserLikeVideoIDListByUserID(user.ID)
+	if err != nil {
+		logrus.Error("get user like video list failed, err:", err)
+		response.ResponseError(c, response.ErrInvalidParams)
+		return
 	}
 	var likeVideoListMap = make(map[uint]bool, len(likeVideoIDs))
 	for _, id := range likeVideoIDs {

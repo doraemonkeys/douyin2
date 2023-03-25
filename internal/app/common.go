@@ -11,18 +11,4 @@ type User struct {
 	Claims *jwt.CustomClaims `json:"claims"`
 }
 
-func VedioFilePathToUrl(path string) string {
-	return "http://localhost:8080" + path
-}
-
-func CoverFilePathToUrl(path string) string {
-	return "http://localhost:8080" + path
-}
-
-func VedioUrlToFilePath(url string) string {
-	return url
-}
-
-func CoverUrlToFilePath(url string) string {
-	return url
-}
+const UserKeyName = "user"

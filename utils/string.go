@@ -10,11 +10,10 @@ func StrLen(str string) int {
 	return len([]rune(str))
 }
 
-// getFormatedTime。
-// 时间戳秒 -> format time。
+// 时间戳毫秒 -> format time(Local)。
 // if rawTime is "" , return current time。
-func GetFormatedTimeFromUnix(rawTime string, format string) (string, error) {
-	if rawTime == "" {
+func GetFormatedTimeFromUnixMilliStr(rawTime string, format string) (string, error) {
+	if rawTime == "" || rawTime == "0" {
 		return time.Now().Format(format), nil
 	}
 	// 时间戳秒 -> format time
@@ -22,6 +21,12 @@ func GetFormatedTimeFromUnix(rawTime string, format string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	foramtedTime := time.Unix(int64(latestTime), 0).Format(format)
+	foramtedTime := time.UnixMilli(int64(latestTime)).In(time.Local).Format(format)
 	return foramtedTime, nil
+}
+
+// 时间戳毫秒 -> format time(Local)。
+// if rawTime is "" , return current time。
+func GetFormatedTimeFromUnixMilli(rawTime int64, format string) string {
+	return time.UnixMilli(rawTime).In(time.Local).Format(format)
 }

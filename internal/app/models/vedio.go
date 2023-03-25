@@ -41,10 +41,10 @@ func (v *VideoModel) TableName() string {
 
 type VideoCacheModel struct {
 	gorm.Model
-	Title        string `gorm:"size:200"`
-	StorageID    uint   `gorm:"unique_index"`
-	URL          string `gorm:"size:200"`
-	CoverURL     string `gorm:"size:200"`
+	Title        string
+	StorageID    uint
+	URL          string
+	CoverURL     string
 	AuthorID     uint
 	LikeCount    uint
 	CommentCount uint

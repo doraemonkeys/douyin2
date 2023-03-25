@@ -3,6 +3,7 @@ package initiate
 import (
 	"github.com/Doraemonkeys/douyin2/config"
 	"github.com/Doraemonkeys/douyin2/internal/database"
+	"github.com/Doraemonkeys/douyin2/internal/msgQueue"
 	"github.com/Doraemonkeys/douyin2/internal/server"
 	"github.com/Doraemonkeys/douyin2/pkg/log"
 	"github.com/gin-gonic/gin"
@@ -21,6 +22,9 @@ func Run() {
 	database.InitVideoCommentCacher(cacheSize)
 	database.InitUserCacher(cacheSize)
 	database.InitUserFavoriteCacher(cacheSize)
+
+	// init message queue
+	msgQueue.InitFavoriteMQ()
 
 	// main logic
 	runDouyinServer()

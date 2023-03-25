@@ -11,5 +11,5 @@ type CommentModel struct {
 	UserID    uint
 	Content   string `gorm:"type:text"`
 	Video     VideoModel
-	Commenter UserModel
+	Commenter UserModel `gorm:"foreignKey:UserID"`
 }

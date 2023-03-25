@@ -30,8 +30,6 @@ type UserModel struct {
 	CommentCount uint
 	//总收藏数
 	CollectionsCount uint `gorm:"type:int"`
-	//总视频数
-	VideosCount uint `gorm:"type:int"`
 	//关注列表
 	Followers []UserModel `gorm:"many2many:user_follower;joinForeignKey:UserID;joinReferences:FollowerID"`
 	//粉丝列表
@@ -80,7 +78,6 @@ func (u *UserCacheModel) SetValue(user UserModel) {
 	u.FanCount = user.FanCount
 	u.CommentCount = user.CommentCount
 	u.CollectionsCount = user.CollectionsCount
-	u.VideosCount = user.VideosCount
 }
 
 func (u *UserModel) SetValueFromCacheModel(user UserCacheModel) {
@@ -95,5 +92,4 @@ func (u *UserModel) SetValueFromCacheModel(user UserCacheModel) {
 	u.FanCount = user.FanCount
 	u.CommentCount = user.CommentCount
 	u.CollectionsCount = user.CollectionsCount
-	u.VideosCount = user.VideosCount
 }

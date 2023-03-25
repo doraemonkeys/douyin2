@@ -3,14 +3,13 @@ package feed
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/Doraemonkeys/douyin2/internal/app"
 	"github.com/Doraemonkeys/douyin2/internal/app/handlers/response"
 	"github.com/Doraemonkeys/douyin2/internal/app/middleware"
-	"github.com/Doraemonkeys/douyin2/internal/app/models"
 	"github.com/Doraemonkeys/douyin2/internal/app/services"
-	"github.com/Doraemonkeys/douyin2/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
@@ -18,6 +17,7 @@ import (
 const FeedVedioListLimit = 30
 
 type FeedVideeDTO struct {
+	// 最新的视频时间戳，毫秒
 	LatestTime string   `json:"latest_time"`
 	Token      string   `json:"token"`
 	User       app.User `json:"user"`
@@ -35,21 +35,27 @@ func NewProxyFeedVideoList(c *gin.Context) *proxyFeedVideoList {
 func (p *proxyFeedVideoList) DoNoToken(feedRequest FeedVideeDTO) {
 	var res response.VideoListResponse
 
-	foramtedTime, err := utils.GetFormatedTimeFromUnix(feedRequest.LatestTime, models.DataBaseTimeFormat)
+	lastTime, err := strconv.ParseInt(feedRequest.LatestTime, 10, 64)
 	if err != nil {
-		response.ResponseError(p.Context, response.ErrServerInternal)
+		response.ResponseError(p.Context, response.ErrInvalidParams)
 	}
-	logrus.Debug("latestTime: ", feedRequest.LatestTime, "foramtedTime: ", foramtedTime)
 
-	videoModels, err := services.GetVideoAndAuthorListFeedByLastTime(foramtedTime, FeedVedioListLimit)
+	videoModels, err := services.GetVideoAndAuthorListFeedByLastTime(lastTime, FeedVedioListLimit)
+	if err != nil && err.Error() == services.ErrDBEmpty {
+		res.CommonResponse.StatusCode = response.Failed
+		res.CommonResponse.StatusMsg = response.ErrDBEmpty
+		p.Context.JSON(http.StatusOK, res)
+		return
+	}
 	if err != nil {
+		logrus.Error("get video list failed, err: ", err)
 		res.CommonResponse.StatusCode = response.Failed
 		res.CommonResponse.StatusMsg = response.ErrServerInternal
 		p.Context.JSON(http.StatusOK, res)
 		return
 	}
 	var dummyMap map[uint]bool = make(map[uint]bool)
-	res.SetValues(videoModels, dummyMap)
+	res.SetValues(videoModels, dummyMap, dummyMap)
 	res.CommonResponse.StatusCode = response.Success
 	p.Context.JSON(http.StatusOK, res)
 }
@@ -64,14 +70,19 @@ func (p *proxyFeedVideoList) DoHasToken(feedRequest FeedVideeDTO) {
 	}
 
 	var res response.VideoListResponse
-	foramtedTime, err := utils.GetFormatedTimeFromUnix(feedRequest.LatestTime, models.DataBaseTimeFormat)
+	lastTime, err := strconv.ParseInt(feedRequest.LatestTime, 10, 64)
 	if err != nil {
-		response.ResponseError(p.Context, response.ErrServerInternal)
+		response.ResponseError(p.Context, response.ErrInvalidParams)
 	}
-	logrus.Debug("latestTime: ", feedRequest.LatestTime, "foramtedTime: ", foramtedTime)
-
-	videoModels, err := services.GetVideoAndAuthorListFeedByLastTime(foramtedTime, FeedVedioListLimit)
+	videoModels, err := services.GetVideoAndAuthorListFeedByLastTime(lastTime, FeedVedioListLimit)
+	if err != nil && err.Error() == services.ErrDBEmpty {
+		res.CommonResponse.StatusCode = response.Failed
+		res.CommonResponse.StatusMsg = response.ErrDBEmpty
+		p.Context.JSON(http.StatusOK, res)
+		return
+	}
 	if err != nil {
+		logrus.Error("get video list failed, err: ", err)
 		res.CommonResponse.StatusCode = response.Failed
 		res.CommonResponse.StatusMsg = response.ErrServerInternal
 		p.Context.JSON(http.StatusOK, res)
@@ -82,7 +93,26 @@ func (p *proxyFeedVideoList) DoHasToken(feedRequest FeedVideeDTO) {
 		UserIDs = append(UserIDs, video.Author.ID)
 	}
 	FollowedMap, err := services.QueryFollowedMapByUserIDList(feedRequest.User.ID, UserIDs)
-	res.SetValues(videoModels, FollowedMap)
+	if err != nil {
+		logrus.Error("get followed map failed, err: ", err)
+		res.CommonResponse.StatusCode = response.Failed
+		res.CommonResponse.StatusMsg = response.ErrServerInternal
+		p.Context.JSON(http.StatusOK, res)
+		return
+	}
+	feedVIDs := make([]uint, 0, len(videoModels))
+	for _, video := range videoModels {
+		feedVIDs = append(feedVIDs, video.ID)
+	}
+	likesVideoInFeedListMap, err := services.GetLikesVideoIDsByUserIDAndVideoIDs(feedRequest.User.ID, feedVIDs)
+	if err != nil {
+		logrus.Error("get likes video map failed, err: ", err)
+		res.CommonResponse.StatusCode = response.Failed
+		res.CommonResponse.StatusMsg = response.ErrServerInternal
+		p.Context.JSON(http.StatusOK, res)
+		return
+	}
+	res.SetValues(videoModels, likesVideoInFeedListMap, FollowedMap)
 	res.CommonResponse.StatusCode = response.Success
 	p.Context.JSON(http.StatusOK, res)
 }
@@ -94,8 +124,9 @@ func FeedVideoListHandler(c *gin.Context) {
 
 	var feedRequest FeedVideeDTO
 	feedRequest.LatestTime = c.DefaultQuery("latest_time", fmt.Sprint(time.Now().Unix()))
+	logrus.Debug("\033[32mfeedRequest.LatestTime: ", feedRequest.LatestTime, "\033[0m")
 	var ok bool
-	user, ok := c.Get("user")
+	user, ok := c.Get(app.UserKeyName)
 	//未登录
 	if !ok {
 		proxy.DoNoToken(feedRequest)

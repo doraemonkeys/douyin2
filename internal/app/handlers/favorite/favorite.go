@@ -22,18 +22,22 @@ type PostFavorDTO struct {
 	ActionType string `json:"action_type"`
 }
 
+const (
+	PostFavorDTO_VideoID   = "video_id"
+	PostFavorDTO_Token     = "token"
+	PostFavorDTO_ActionTyp = "action_type"
+)
+
 func PostFavorHandler(c *gin.Context) {
 	var postFavorDTO PostFavorDTO
-	err := c.ShouldBind(&postFavorDTO)
-	if err != nil {
-		logrus.Error("bind postFavorDTO failed, err:", err)
-		response.ResponseError(c, response.ErrInvalidParams)
-		return
-	}
+	postFavorDTO.VideoID, _ = strconv.Atoi(c.Query(PostFavorDTO_VideoID))
+	postFavorDTO.ActionType = c.Query(PostFavorDTO_ActionTyp)
+	logrus.Debug("postFavorDTO: ", postFavorDTO)
 	// 获取用户
-	user := c.MustGet("user").(app.User)
+	user := c.MustGet(app.UserKeyName).(app.User)
 	// 点赞
 	if postFavorDTO.ActionType != "1" && postFavorDTO.ActionType != "2" {
+		logrus.Debug("invalid action type ", postFavorDTO.ActionType)
 		response.ResponseError(c, response.ErrInvalidParams)
 		return
 	}
@@ -46,6 +50,7 @@ func PostFavorHandler(c *gin.Context) {
 		UserID:     user.ID,
 		ActionType: action,
 	})
+	logrus.Debug("send to mq success")
 	response.ResponseSuccess(c, FavoriteSuccess)
 }
 
@@ -54,14 +59,26 @@ type QueryFavorVideoListDTO struct {
 	UserID uint   `json:"user_id"`
 }
 
+const (
+	QueryFavorVideoListDTO_UserID = "user_id"
+)
+
 func QueryFavorVideoListHandler(c *gin.Context) {
 	var queryFavorVideoListDTO QueryFavorVideoListDTO
-	err := c.ShouldBind(&queryFavorVideoListDTO)
-	if err != nil {
-		logrus.Error("bind queryFavorVideoListDTO failed, err:", err)
+	// err := c.ShouldBind(&queryFavorVideoListDTO)
+	// if err != nil {
+	// 	logrus.Error("bind queryFavorVideoListDTO failed, err:", err)
+	// 	response.ResponseError(c, response.ErrInvalidParams)
+	// 	return
+	// }
+	strID, ok := c.GetQuery(QueryFavorVideoListDTO_UserID)
+	UintID, err := strconv.ParseUint(strID, 10, 64)
+	if !ok || err != nil {
+		logrus.Error("get queryFavorVideoListDTO failed, err:", err)
 		response.ResponseError(c, response.ErrInvalidParams)
 		return
 	}
+	queryFavorVideoListDTO.UserID = uint(UintID)
 
 	// 从cache中获取用户的点赞列表
 	likesCacher := database.GetUserFavoriteCacher()
@@ -95,7 +112,7 @@ func queryFavorVideoListHandler_CacheHit(c *gin.Context, queryFavorVideoListDTO 
 		return
 	}
 	var FollowedMap = make(map[uint]bool)
-	user := c.MustGet("user").(app.User)
+	user := c.MustGet(app.UserKeyName).(app.User)
 	if user.ID == queryFavorVideoListDTO.UserID {
 		// 自己查询自己的点赞列表，可以直接从cache中判断是否关注视频作者
 		for _, val := range videoLikeList {
@@ -136,7 +153,7 @@ func queryFavorVideoListHandler_CacheMiss(c *gin.Context, queryFavorVideoListDTO
 		return
 	}
 	// 获取视频作者是否被查询者关注
-	user := c.MustGet("user").(app.User)
+	user := c.MustGet(app.UserKeyName).(app.User)
 	queryIdList := make([]uint, len(videoList))
 	for i, val := range videoList {
 		queryIdList[i] = val.AuthorID
