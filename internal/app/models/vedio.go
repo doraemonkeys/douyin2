@@ -51,19 +51,6 @@ type VideoCacheModel struct {
 	//Author       UserCacheModel
 }
 
-// Weight 计算视频权重
-// 根据视频的创建时间和点赞数进行排序，
-// 创建的时间越近，点赞数越多的视频排在前面
-func (v VideoCacheModel) Weight() int64 {
-	var TimeWeight float64 = 0.1
-	var weight int64 = int64(v.LikeCount) + int64(v.CommentCount) + int64(TimeWeight*float64(v.CreatedAt.Unix()))
-	return weight
-}
-
-func (v VideoCacheModel) Less(other VideoCacheModel) bool {
-	return v.Weight() < other.Weight()
-}
-
 func (v *VideoCacheModel) SetValue(other VideoModel) {
 	v.ID = other.ID
 	v.CreatedAt = other.CreatedAt

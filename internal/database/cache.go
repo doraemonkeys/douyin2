@@ -28,16 +28,16 @@ func GetVideoInfoCacher() cache.Cacher[uint, models.VideoCacheModel] {
 	return videoInfoCacher
 }
 
-var videoCommentCacher cache.Cacher[uint, models.CommentModel]
+var videoCommentCacher cache.Cacher[uint, models.CommentCacheModel]
 var videoCommentCacherInitOnce sync.Once
 
 func InitVideoCommentCacher(cap int) {
 	videoCommentCacherInitOnce.Do(func() {
-		videoCommentCacher = cache.NewARC[uint, models.CommentModel](cap)
+		videoCommentCacher = cache.NewARC[uint, models.CommentCacheModel](cap)
 	})
 }
 
-func GetVideoCommentCacher() cache.Cacher[uint, models.CommentModel] {
+func GetVideoCommentCacher() cache.Cacher[uint, models.CommentCacheModel] {
 	return videoCommentCacher
 }
 
