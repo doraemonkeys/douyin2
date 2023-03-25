@@ -78,9 +78,7 @@ func (hook *logHook) Fire(entry *logrus.Entry) error {
 		entry.Data[hook.LogConfig.key] = hook.LogConfig.value
 	}
 	file := entry.Caller.File
-	if strings.Contains(file, "/") {
-		file = file[strings.LastIndex(file, "/")+1:] + ":" + fmt.Sprint(entry.Caller.Line)
-	}
+	file = getShortFileName(file)
 	entry.Data["FILE"] = file
 	entry.Data["FUNC"] = entry.Caller.Function[strings.LastIndex(entry.Caller.Function, ".")+1:]
 
@@ -90,6 +88,13 @@ func (hook *logHook) Fire(entry *logrus.Entry) error {
 	if !hook.LogConfig.ShowFuncInConsole {
 		defer delete(entry.Data, "FUNC")
 	}
+	// 为debug级别的日志添加颜色
+	// if entry.Level == logrus.DebugLevel {
+	// 	defer func() {
+	// 		// \033[35m 紫色 \033[0m
+	// 		entry.Message = "\x1b[35m" + entry.Message + "\x1b[0m"
+	// 	}()
+	// }
 
 	//取消日志输出到文件
 	if hook.LogConfig.NoFile {
@@ -125,6 +130,18 @@ func (hook *logHook) Fire(entry *logrus.Entry) error {
 	}
 
 	return nil
+}
+
+// D:\xxx\yyy\yourproject\pkg\log\log.go -> pkg\log\log.go
+func getShortFileName(file string) string {
+	file = strings.Replace(file, "\\", "/", -1)
+	if strings.Contains(file, "/") {
+		env, _ := os.Getwd()
+		env = strings.Replace(env, "\\", "/", -1)
+		file = strings.Replace(file, env, "", -1)
+		//file = file[strings.LastIndex(file, "/")+1:] + ":" + fmt.Sprint(entry.Caller.Line)
+	}
+	return file
 }
 
 func (hook *logHook) Levels() []logrus.Level {
@@ -340,7 +357,7 @@ func initlLog(logger *logrus.Logger, config LogConfig) error {
 
 	logger.SetReportCaller(true) //开启调用者信息
 	logger.SetLevel(level)       //设置最低的Level
-	formatter := &logrus.TextFormatter{
+	formatter := &TextFormatter{
 		TimestampFormat: "2006-01-02 15:04:05", //时间格式
 		FullTimestamp:   true,                  //开启时间戳
 		ForceColors:     true,                  //开启颜色

@@ -63,6 +63,7 @@ func IsDebug() bool {
 func defaultLogConfig() log.LogConfig {
 	var Config log.LogConfig
 	Config.DateSplit = true
+	Config.ErrSeparate = true
 	Config.LogPath = allConfig.Log.Path
 	Config.LogLevel = allConfig.Log.Level
 	Config.ShowShortFileInConsole = true

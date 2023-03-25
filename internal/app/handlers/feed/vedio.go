@@ -133,7 +133,6 @@ func FeedVideoListHandler(c *gin.Context) {
 
 	var feedRequest FeedVideeDTO
 	feedRequest.LatestTime = c.DefaultQuery("latest_time", fmt.Sprint(time.Now().Unix()))
-	logrus.Debug("\033[32mfeedRequest.LatestTime: ", feedRequest.LatestTime, "\033[0m")
 	var ok bool
 	user, ok := c.Get(app.UserKeyName)
 	//未登录
