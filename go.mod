@@ -6,6 +6,7 @@ require (
 	github.com/Doraemonkeys/arrayQueue v1.4.1
 	github.com/gin-gonic/gin v1.9.0
 	github.com/golang-jwt/jwt/v5 v5.0.0-rc.1
+	github.com/hashicorp/golang-lru/v2 v2.0.2
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/viper v1.15.0
 	github.com/wumansgy/goEncrypt v1.1.0
