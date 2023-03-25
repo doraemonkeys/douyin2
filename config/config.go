@@ -57,6 +57,7 @@ func defaultLogConfig() log.LogConfig {
 	Config.DateSplit = true
 	Config.LogPath = allConfig.Log.Path
 	Config.LogLevel = allConfig.Log.Level
+	Config.ShowShortFileInConsole = true
 	return Config
 }
 
