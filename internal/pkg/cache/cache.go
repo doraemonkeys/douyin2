@@ -18,10 +18,10 @@ type Cacher[K comparable, T any] interface {
 
 	// GetMulti returns the values associated with the keys.
 	GetMulti(keys []K) map[K]T
-	//GetRandom returns a random value.
-	GetRandom() (T, error)
-	// GetRandomMulti returns random values.
-	GetRandomMulti(count int) ([]T, error)
+	//PeekRandom returns a random value.
+	PeekRandom() (T, error)
+	// PeekRandomMulti returns random values.
+	PeekRandomMulti(count int) ([]T, error)
 
 	// SetMulti sets the values associated with the keys.
 	SetMulti(kvs map[K]T) []bool

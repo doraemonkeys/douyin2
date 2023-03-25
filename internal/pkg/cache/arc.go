@@ -58,18 +58,18 @@ func (c *myARC[K, T]) GetMulti(keys []K) map[K]T {
 	return m
 }
 
-func (c *myARC[K, T]) GetRandom() (T, error) {
+func (c *myARC[K, T]) PeekRandom() (T, error) {
 	var val T
 	keys := c.arc.Keys()
 	if len(keys) == 0 {
 		return val, ErrorCacheEmpty
 	}
 	var rKey = rand.Intn(len(keys))
-	val, _ = c.arc.Get(keys[rKey])
+	val, _ = c.arc.Peek(keys[rKey])
 	return val, nil
 }
 
-func (c *myARC[K, T]) GetRandomMulti(count int) ([]T, error) {
+func (c *myARC[K, T]) PeekRandomMulti(count int) ([]T, error) {
 	if count > c.Len() {
 		count = c.Len()
 	}
@@ -84,7 +84,7 @@ func (c *myARC[K, T]) GetRandomMulti(count int) ([]T, error) {
 		keysMap[key] = struct{}{}
 	}
 	for k := range keysMap {
-		val, _ := c.arc.Get(k)
+		val, _ := c.arc.Peek(k)
 		vals = append(vals, val)
 		if len(vals) == count {
 			break
