@@ -25,6 +25,7 @@ func Run() {
 
 	// init message queue
 	msgQueue.InitFavoriteMQ()
+	msgQueue.InitCommentMQ()
 
 	// main logic
 	runDouyinServer()
@@ -53,8 +54,7 @@ func initVideoStorageServer() {
 
 func runDouyinServer() {
 	douyinServer := server.NewDouyinServer()
-	logrus.Debug("启动服务, port:|" + config.GetServerPort() + "|")
-	err := douyinServer.Run("0.0.0.0:" + config.GetServerPort())
+	err := douyinServer.Run(":" + config.GetServerPort())
 	if err != nil {
 		panic("启动服务失败, error:" + err.Error())
 	}
