@@ -182,6 +182,35 @@ func QueryUserMapsByUserIDList(userIDList []uint) (userList map[uint]models.User
 	return userList, nil
 }
 
+func GetUserMapByUserIdMap[T any](userIdMap map[uint]T) (userMap map[uint]models.UserModel, err error) {
+	// from cache
+	userCache := database.GetUserInfoCacher()
+	userMap = make(map[uint]models.UserModel)
+	var temp models.UserModel
+	cacheMissIDs := make([]uint, 0)
+	for userId := range userIdMap {
+		if user, exist := userCache.Get(userId); exist {
+			temp.SetValueFromCacheModel(user)
+			userMap[userId] = temp
+		} else {
+			cacheMissIDs = append(cacheMissIDs, userId)
+		}
+	}
+	// from db
+	if len(cacheMissIDs) > 0 {
+		var userList []models.UserModel
+		userList, err = QueryUserListByUserIDList(cacheMissIDs)
+		if err != nil {
+			logrus.Error("query user failed, err: ", err)
+			return userMap, errors.New(response.ErrServerInternal)
+		}
+		for _, user := range userList {
+			userMap[user.ID] = user
+		}
+	}
+	return userMap, nil
+}
+
 func QueryUserListByUserIDList(userIDList []uint) (userList []models.UserModel, err error) {
 	db := database.GetMysqlDB()
 	err = db.Debug().Where("id IN (?)", userIDList).Find(&userList).Error
@@ -201,6 +230,9 @@ func QueryUserListByUserIDList(userIDList []uint) (userList []models.UserModel, 
 
 func QueryFollowedMapByUserIDList(id uint, userIDList []uint) (followedMap map[uint]bool, err error) {
 	followedMap = make(map[uint]bool, len(userIDList))
+	if len(userIDList) == 0 || userIDList == nil {
+		return followedMap, nil
+	}
 	db := database.GetMysqlDB()
 	var userFollows []models.UserFollowerModel
 	err = db.Debug().Where(models.UserFollowerModelTable_UserID+" = ? AND "+

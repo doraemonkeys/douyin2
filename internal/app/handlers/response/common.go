@@ -75,6 +75,7 @@ func ResponseSuccess(c *gin.Context, msg string) {
 	c.JSON(http.StatusOK, res)
 }
 
+// isFollow 查询者是否关注了作者
 func (a *Author) SetValue(user models.UserModel, isFollow bool) {
 	a.ID = int(user.ID)
 	a.Name = user.Username

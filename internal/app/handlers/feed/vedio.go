@@ -54,6 +54,10 @@ func (p *proxyFeedVideoList) DoNoToken(feedRequest FeedVideeDTO) {
 		p.Context.JSON(http.StatusOK, res)
 		return
 	}
+	//debug
+	for _, video := range videoModels {
+		app.ZeroCheck(video.Author.ID)
+	}
 	var dummyMap map[uint]bool = make(map[uint]bool)
 	res.SetValues(videoModels, dummyMap, dummyMap)
 	res.CommonResponse.StatusCode = response.Success
@@ -111,6 +115,10 @@ func (p *proxyFeedVideoList) DoHasToken(feedRequest FeedVideeDTO) {
 		res.CommonResponse.StatusMsg = response.ErrServerInternal
 		p.Context.JSON(http.StatusOK, res)
 		return
+	}
+	//debug
+	for _, video := range videoModels {
+		app.ZeroCheck(video.Author.ID)
 	}
 	res.SetValues(videoModels, likesVideoInFeedListMap, FollowedMap)
 	res.CommonResponse.StatusCode = response.Success

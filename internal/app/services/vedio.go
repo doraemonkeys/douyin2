@@ -5,6 +5,7 @@ import (
 	"math"
 	"strings"
 
+	"github.com/Doraemonkeys/douyin2/internal/app"
 	"github.com/Doraemonkeys/douyin2/internal/app/handlers/response"
 	"github.com/Doraemonkeys/douyin2/internal/app/models"
 	"github.com/Doraemonkeys/douyin2/internal/pkg/cache"
@@ -29,7 +30,8 @@ const (
 	// 删除不存在的记录
 	ErrDeleteNotExists = "删除不存在的记录"
 	// 数据库为空
-	ErrDBEmpty = "数据库为空"
+	ErrDBEmpty        = "数据库为空"
+	ErrDeleteNotOwner = "删除的不是自己的记录"
 )
 
 const (
@@ -80,10 +82,11 @@ func QueryVideoAndUserListByLastTime(lastTime int64, limit int) ([]models.VideoM
 	// 将Users信息添加到videos中
 	var UsersMap = make(map[uint]models.UserModel)
 	for _, v := range Users {
+		app.ZeroCheck(v.ID)
 		UsersMap[v.ID] = v
 	}
-	for _, v := range videos {
-		v.Author = UsersMap[v.AuthorID]
+	for i := 0; i < len(videos); i++ {
+		videos[i].Author = UsersMap[videos[i].AuthorID]
 	}
 	// userInfo 存入Cache
 	userCacher := database.GetUserInfoCacher()
@@ -92,7 +95,9 @@ func QueryVideoAndUserListByLastTime(lastTime int64, limit int) ([]models.VideoM
 		temp.SetValue(v)
 		userCacher.Set(v.ID, temp)
 	}
-
+	for _, v := range videos {
+		logrus.Debug("QueryVideoUserList：", v.Author)
+	}
 	return videos, nil
 }
 
@@ -130,8 +135,8 @@ func GetVideoAndAuthorListFeedByLastTime(lastTime int64, limit int) ([]models.Vi
 		}
 		videos1 = append(videos1, temp)
 	}
-	logrus.Trace("GetVideoListFeedByLastTime from cache：", videos1)
-	// 2. from mysql 处理cache miss
+	logrus.Debug("GetVideoListFeedByLastTime from cache：", videos1)
+	// 1.2 from mysql 处理cache miss
 	if len(cacheMiss) > 0 {
 		Users, err := QueryUserListByUserIDList(cacheMiss)
 		if err != nil {
@@ -157,11 +162,18 @@ func GetVideoAndAuthorListFeedByLastTime(lastTime int64, limit int) ([]models.Vi
 		if err != nil {
 			return nil, err
 		}
+		for _, v := range videos2 {
+			logrus.Debug("GetVideoListFeedByLastTime from mysql：", v.Author)
+		}
 	}
 	// 合并两个视频列表
 	Videos := append(videos1, videos2...)
 	if len(Videos) == 0 {
 		return nil, errors.New(ErrDBEmpty)
+	}
+	//debug
+	for _, v := range Videos {
+		logrus.Debug("query debug author:", v.Author)
 	}
 	return Videos, nil
 }
@@ -338,7 +350,14 @@ func QueryVideoListByVideoIDList(videoIDList []uint) ([]models.VideoModel, error
 		return nil, err
 	}
 	// 将从MySQL中获取的视频信息添加到cache中
-	return nil, nil
+	cacher := database.GetVideoInfoCacher()
+	var temp models.VideoCacheModel
+	for _, v := range videos {
+		temp.SetValue(v)
+		app.ZeroCheck(v.ID)
+		cacher.Set(v.ID, temp)
+	}
+	return videos, nil
 }
 
 func GetVideoListAndAuthorByVideoIDList(videoIDList []uint) ([]models.VideoModel, error) {
@@ -364,6 +383,7 @@ func GetVideoListAndAuthorByVideoIDList(videoIDList []uint) ([]models.VideoModel
 		if err != nil {
 			return nil, err
 		}
+		logrus.Debug("从MySQL中获取cache未命中的视频信息", MysqlVideos)
 		videos = append(videos, MysqlVideos...)
 	}
 

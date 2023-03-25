@@ -105,6 +105,7 @@ func queryFavorVideoListHandler_CacheHit(c *gin.Context, queryFavorVideoListDTO 
 	for i, val := range videoLikeList {
 		videoIDs[i] = val.VideoID
 	}
+	app.ZeroListCheck(videoLikeList)
 	videoAndAuthorInfos, err := services.GetVideoListAndAuthorByVideoIDList(videoIDs)
 	if err != nil {
 		logrus.Error("get video list failed, err:", err)
@@ -139,14 +140,15 @@ func queryFavorVideoListHandler_CacheHit(c *gin.Context, queryFavorVideoListDTO 
 func queryFavorVideoListHandler_CacheMiss(c *gin.Context, queryFavorVideoListDTO QueryFavorVideoListDTO) {
 	var res response.QueryFavorVideoListResponse
 	// cache未命中，从数据库中获取
-	favorVideoListID, err := services.QueryFavorVideoIDListByUserID(queryFavorVideoListDTO.UserID)
+	favorVideoIDList, err := services.QueryFavorVideoIDListByUserID(queryFavorVideoListDTO.UserID)
 	if err != nil {
 		logrus.Error("get favor list failed, err:", err)
 		response.ResponseError(c, response.ErrServerInternal)
 		return
 	}
+	app.ZeroListCheck(favorVideoIDList)
 	// 获取视频列表
-	videoList, err := services.GetVideoListAndAuthorByVideoIDList(favorVideoListID)
+	videoList, err := services.GetVideoListAndAuthorByVideoIDList(favorVideoIDList)
 	if err != nil {
 		logrus.Error("get video list failed, err:", err)
 		response.ResponseError(c, response.ErrServerInternal)
@@ -156,6 +158,7 @@ func queryFavorVideoListHandler_CacheMiss(c *gin.Context, queryFavorVideoListDTO
 	user := c.MustGet(app.UserKeyName).(app.User)
 	queryIdList := make([]uint, len(videoList))
 	for i, val := range videoList {
+		app.ZeroCheck(val.AuthorID)
 		queryIdList[i] = val.AuthorID
 	}
 	followedMap, err := services.QueryFollowedMapByUserIDList(user.ID, queryIdList)

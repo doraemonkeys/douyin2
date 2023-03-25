@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/Doraemonkeys/douyin2/config"
+	"github.com/Doraemonkeys/douyin2/internal/app/handlers/comment"
 	"github.com/Doraemonkeys/douyin2/internal/app/handlers/favorite"
 	"github.com/Doraemonkeys/douyin2/internal/app/handlers/feed"
 	"github.com/Doraemonkeys/douyin2/internal/app/handlers/publish"
@@ -58,11 +59,11 @@ func initDouyinRouter() *gin.Engine {
 	baseGroup.POST("/publish/action/", middleware.JWTMiddleWare(), publish.PublishVedioHandler)
 	baseGroup.GET("/publish/list/", middleware.JWTMiddleWare(), publish.QueryPublishListHandler)
 
-	// //extend 1
+	//extend 1
 	baseGroup.POST("/favorite/action/", middleware.JWTMiddleWare(), favorite.PostFavorHandler)
 	baseGroup.GET("/favorite/list/", middleware.JWTMiddleWare(), favorite.QueryFavorVideoListHandler)
-	// baseGroup.POST("/comment/action/", middleware.JWTMiddleWare(), comment.PostCommentHandler)
-	// baseGroup.GET("/comment/list/", middleware.JWTMiddleWare(), comment.QueryCommentListHandler)
+	baseGroup.POST("/comment/action/", middleware.JWTMiddleWare(), comment.PostCommentHandler)
+	baseGroup.GET("/comment/list/", middleware.JWTMiddleWare(), comment.QueryCommentListHandler)
 
 	// //extend 2
 	// baseGroup.POST("/relation/action/", middleware.JWTMiddleWare(), user_info.PostFollowActionHandler)
