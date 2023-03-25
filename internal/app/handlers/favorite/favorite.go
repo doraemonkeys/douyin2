@@ -122,7 +122,7 @@ func queryFavorVideoListHandler_CacheHit(c *gin.Context, queryFavorVideoListDTO 
 func queryFavorVideoListHandler_CacheMiss(c *gin.Context, queryFavorVideoListDTO QueryFavorVideoListDTO) {
 	var res response.QueryFavorVideoListResponse
 	// cache未命中，从数据库中获取
-	favorVideoListID, err := services.QueryFavorVideoListIDByUserID(queryFavorVideoListDTO.UserID)
+	favorVideoListID, err := services.QueryFavorVideoIDListByUserID(queryFavorVideoListDTO.UserID)
 	if err != nil {
 		logrus.Error("get favor list failed, err:", err)
 		response.ResponseError(c, response.ErrServerInternal)

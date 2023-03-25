@@ -13,6 +13,7 @@ import (
 /*
    Query 从MySQL中查询
    Get 从Cache中或MySQL中查询
+   Query 后都会尝试存入Cache
 */
 
 func QueryUserById(id uint) (models.UserModel, error) {
@@ -26,6 +27,11 @@ func QueryUserById(id uint) (models.UserModel, error) {
 		logrus.Error("query user failed, err: ", err)
 		return user, errors.New(response.ErrServerInternal)
 	}
+	// 存入缓存
+	cacher := database.GetUserInfoCacher()
+	var userCacheModel models.UserCacheModel
+	userCacheModel.SetValue(user)
+	cacher.Set(id, userCacheModel)
 	return user, nil
 }
 
@@ -34,16 +40,16 @@ func GetUserById(id uint) (models.UserModel, error) {
 	// 从缓存中获取
 	cacher := database.GetUserInfoCacher()
 	user, exist := cacher.Get(id)
-	if !exist {
-		var err error
-		userReturn, err = QueryUserById(id)
-		if err != nil {
-			return userReturn, err
-		}
-		user.SetValue(userReturn)
-		cacher.Set(id, user)
+	if exist {
+		userReturn.SetValueFromCacheModel(user)
+		return userReturn, nil
 	}
-	userReturn.SetValueFromCacheModel(user)
+	// 从MySQL中获取
+	var err error
+	userReturn, err = QueryUserById(id)
+	if err != nil {
+		return userReturn, err
+	}
 	return userReturn, nil
 }
 
@@ -61,6 +67,8 @@ func QueryUserByUsername(username string) (models.UserModel, error) {
 	return user, nil
 }
 
+// QueryUserExistById 查询MySQL中是否存在某个用户。
+// 不更新缓存。
 func QueryUserExistById(id int) bool {
 	var user models.UserModel
 	db := database.GetMysqlDB()
@@ -71,6 +79,8 @@ func QueryUserExistById(id int) bool {
 	return false
 }
 
+// QueryUserExistByUsername 查询MySQL中是否存在某个用户。
+// 不更新缓存。
 func QueryUserExistByUsername(username string) bool {
 	var user models.UserModel
 	db := database.GetMysqlDB()
@@ -82,20 +92,20 @@ func QueryUserExistByUsername(username string) bool {
 }
 
 // QueryUserWithFollowers 用户信息与粉丝列表
-func QueryUserWithFollowersByID(id int) (models.UserModel, error) {
-	const fieldFollower = models.UserModelTable_FollowersSlice
-	var user models.UserModel
-	db := database.GetMysqlDB()
-	err := db.Debug().Preload(fieldFollower).Where("id = ?", id).Find(&user).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return user, errors.New(response.ErrUserNotExists)
-		}
-		logrus.Error("query user failed, err: ", err)
-		return user, errors.New(response.ErrServerInternal)
-	}
-	return user, nil
-}
+// func QueryUserWithFollowersByID(id int) (models.UserModel, error) {
+// 	const fieldFollower = models.UserModelTable_FollowersSlice
+// 	var user models.UserModel
+// 	db := database.GetMysqlDB()
+// 	err := db.Debug().Preload(fieldFollower).Where("id = ?", id).Find(&user).Error
+// 	if err != nil {
+// 		if errors.Is(err, gorm.ErrRecordNotFound) {
+// 			return user, errors.New(response.ErrUserNotExists)
+// 		}
+// 		logrus.Error("query user failed, err: ", err)
+// 		return user, errors.New(response.ErrServerInternal)
+// 	}
+// 	return user, nil
+// }
 
 // 判断某个用户是否关注了另一个用户
 func QueryUserFollowed(userID uint, followID uint) bool {
@@ -141,22 +151,86 @@ func QueryUserFollowedMap(userID uint, followIDList []uint) (map[uint]bool, erro
 	return followedMap, nil
 }
 
-func QueryFavorVideoListIDByUserID(userID uint) (likeVideos []uint, err error) {
-	return nil, nil
-}
-
-func QueryUserListByUserIDList(userIDList []uint) (userList []models.UserModel, err error) {
-	return nil, nil
+func QueryFavorVideoIDListByUserID(userID uint) (likeVideos []uint, err error) {
+	db := database.GetMysqlDB()
+	var userFavor []models.UserLikeModel
+	logrus.Debug("看看这里的sql语句对不对")
+	db.Debug().Where(models.UserLikeModelTable_UserID+" = ?", userID).Find(&userFavor)
+	for _, userFavor := range userFavor {
+		likeVideos = append(likeVideos, userFavor.VideoID)
+	}
+	return likeVideos, nil
 }
 
 func QueryUserMapsByUserIDList(userIDList []uint) (userList map[uint]models.UserModel, err error) {
-	return nil, nil
+	userList = make(map[uint]models.UserModel)
+	db := database.GetMysqlDB()
+	var userListTemp []models.UserModel
+	err = db.Debug().Where("id IN (?)", userIDList).Find(&userListTemp).Error
+	if err != nil {
+		logrus.Error("query user failed, err: ", err)
+		return userList, errors.New(response.ErrServerInternal)
+	}
+	cacher := database.GetUserInfoCacher()
+	var tempCache models.UserCacheModel
+	for _, user := range userListTemp {
+		userList[user.ID] = user
+		tempCache.SetValue(user)
+		// 更新缓存
+		cacher.Set(user.ID, tempCache)
+	}
+	return userList, nil
+}
+
+func QueryUserListByUserIDList(userIDList []uint) (userList []models.UserModel, err error) {
+	db := database.GetMysqlDB()
+	err = db.Debug().Where("id IN (?)", userIDList).Find(&userList).Error
+	if err != nil {
+		logrus.Error("query user failed, err: ", err)
+		return userList, errors.New(response.ErrServerInternal)
+	}
+	// 更新缓存
+	cacher := database.GetUserInfoCacher()
+	var tempCache models.UserCacheModel
+	for _, user := range userList {
+		tempCache.SetValue(user)
+		cacher.Set(user.ID, tempCache)
+	}
+	return userList, nil
 }
 
 func QueryFollowedMapByUserIDList(id uint, userIDList []uint) (followedMap map[uint]bool, err error) {
-	return nil, nil
+	followedMap = make(map[uint]bool, len(userIDList))
+	db := database.GetMysqlDB()
+	var userFollows []models.UserFollowerModel
+	err = db.Debug().Where(models.UserFollowerModelTable_UserID+" = ? AND "+
+		models.UserFollowerModelTable_FollowerID+" IN (?)", id, userIDList).Find(&userFollows).Error
+	if err != nil {
+		logrus.Error("query user failed, err: ", err)
+		return followedMap, errors.New(response.ErrServerInternal)
+	}
+	for _, userFollow := range userFollows {
+		followedMap[userFollow.FollowerID] = true
+	}
+	return followedMap, nil
 }
 
 func QueryFollowedMapByUserIDMap[T any](id uint, userIDMap map[uint]T) (followedMap map[uint]bool, err error) {
-	return nil, nil
+	followedMap = make(map[uint]bool, len(userIDMap))
+	db := database.GetMysqlDB()
+	var userFollows []models.UserFollowerModel
+	var ids []uint
+	for id := range userIDMap {
+		ids = append(ids, id)
+	}
+	err = db.Debug().Where(models.UserFollowerModelTable_UserID+" = ? AND "+
+		models.UserFollowerModelTable_FollowerID+" IN (?)", id, ids).Find(&userFollows).Error
+	if err != nil {
+		logrus.Error("query user failed, err: ", err)
+		return followedMap, errors.New(response.ErrServerInternal)
+	}
+	for _, userFollow := range userFollows {
+		followedMap[userFollow.FollowerID] = true
+	}
+	return followedMap, nil
 }
