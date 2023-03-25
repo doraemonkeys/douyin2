@@ -20,7 +20,7 @@ type FavoriteMSg struct {
 	ActionType int `json:"action_type"`
 }
 
-const FavoriteWorkerNum int = 5
+const FavoriteWorkerNum int = 10
 
 var favoriteMQ *messageQueue.SimpleMQ[FavoriteMSg]
 var favoriteMQInitOnce sync.Once
