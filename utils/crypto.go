@@ -30,7 +30,6 @@ func (a *CbcAESCrypt) Encrypt(plainText string) (string, error) {
 }
 
 func (a *CbcAESCrypt) Decrypt(cipherTextHex string) (string, error) {
-	logrus.Debug("decrypt raw token:|" + cipherTextHex + "|")
 	if cipherTextHex == "" {
 		return "", errors.New("cipherTextHex is empty")
 	}

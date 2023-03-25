@@ -2,7 +2,6 @@ package jwt
 
 import (
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/sirupsen/logrus"
 )
 
 type Cryptoer interface {
@@ -51,7 +50,6 @@ func (j *CryptJWT) ParseToken(tokenString string) (*CustomClaims, error) {
 		if err != nil {
 			return nil, err
 		}
-		logrus.Debug("decrypt token: ", tokenString)
 	}
 
 	// 解析token
