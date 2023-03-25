@@ -96,6 +96,7 @@ func (p *proxyFeedVideoList) DoHasToken(feedRequest FeedVideeDTO) {
 	for _, video := range videoModels {
 		UserIDs = append(UserIDs, video.Author.ID)
 	}
+	logrus.Debug("UserIDs: ", UserIDs)
 	FollowedMap, err := services.QueryFollowedMapByUserIDList(feedRequest.User.ID, UserIDs)
 	if err != nil {
 		logrus.Error("get followed map failed, err: ", err)

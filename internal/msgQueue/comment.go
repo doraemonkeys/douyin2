@@ -48,6 +48,9 @@ func CommentMsgHandler(msg CommentMsg) {
 			logrus.Error("发表评论失败：", err)
 		}
 	} else if msg.ActionType == ActionTypeDelete {
+		if msg.CommentId == 0 {
+			return
+		}
 		// 删除评论
 		//logrus.Debug("删除评论：", "comment_id:", msg.CommentId, "commenter_id:", msg.CommenterID)
 		err := services.DeleteComment(msg.CommentId, msg.CommenterID)

@@ -125,6 +125,7 @@ func queryFavorVideoListHandler_CacheHit(c *gin.Context, queryFavorVideoListDTO 
 		for i, val := range videoAndAuthorInfos {
 			queryIdList[i] = val.AuthorID
 		}
+		logrus.Debug("queryIdList: ", queryIdList)
 		FollowedMap, err = services.QueryFollowedMapByUserIDList(user.ID, queryIdList)
 		if err != nil {
 			logrus.Error("get followed map failed, err:", err)
@@ -157,6 +158,10 @@ func queryFavorVideoListHandler_CacheMiss(c *gin.Context, queryFavorVideoListDTO
 		response.ResponseError(c, response.ErrServerInternal)
 		return
 	}
+	//debug
+	for _, val := range videoList {
+		logrus.Debug("videoList: ", val, "author: ", val.Author)
+	}
 	// 获取视频作者是否被查询者关注
 	user := c.MustGet(app.UserKeyName).(app.User)
 	queryIdList := make([]uint, len(videoList))
@@ -164,6 +169,7 @@ func queryFavorVideoListHandler_CacheMiss(c *gin.Context, queryFavorVideoListDTO
 		app.ZeroCheck(val.AuthorID)
 		queryIdList[i] = val.AuthorID
 	}
+	logrus.Debug("queryIdList: ", queryIdList)
 	followedMap, err := services.QueryFollowedMapByUserIDList(user.ID, queryIdList)
 	if err != nil {
 		logrus.Error("get followed map failed, err:", err)

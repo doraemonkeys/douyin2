@@ -51,11 +51,10 @@ func QueryVideoAndUserListByLastTime(lastTime int64, limit int) ([]models.VideoM
 	var videos []models.VideoModel
 	db := database.GetMysqlDB()
 	created_at := models.VideoModelTable_CreatedAt
-	err := db.Debug().Where(created_at+" < ?", foramtedTime).Order(created_at + " desc").Limit(limit).Find(&videos).Error
+	err := db.Where(created_at+" < ?", foramtedTime).Order(created_at + " desc").Limit(limit).Find(&videos).Error
 	if err != nil {
 		return nil, err
 	}
-	logrus.Trace("QueryVideoList：", videos)
 
 	// videoInfo 存入Cache
 	videoCacher := database.GetVideoInfoCacher()
@@ -72,12 +71,11 @@ func QueryVideoAndUserListByLastTime(lastTime int64, limit int) ([]models.VideoM
 
 	// Query
 	var Users []models.UserModel
-	err = db.Debug().Where("id in (?)", ids).Find(&Users).Error
+	err = db.Where("id in (?)", ids).Find(&Users).Error
 	if err != nil {
 		logrus.Error(err)
 		return nil, errors.New(response.ErrServerInternal)
 	}
-	logrus.Debug("QueryVideoUserList：", Users)
 
 	// 将Users信息添加到videos中
 	var UsersMap = make(map[uint]models.UserModel)
@@ -94,9 +92,6 @@ func QueryVideoAndUserListByLastTime(lastTime int64, limit int) ([]models.VideoM
 		var temp models.UserCacheModel
 		temp.SetValue(v)
 		userCacher.Set(v.ID, temp)
-	}
-	for _, v := range videos {
-		logrus.Debug("QueryVideoUserList：", v.Author)
 	}
 	return videos, nil
 }
@@ -196,7 +191,6 @@ func QueryPublishListByAuthorID(userID uint) ([]models.VideoModel, error) {
 	if err != nil {
 		return nil, err
 	}
-	logrus.Debug("QueryVideoListByUserID：", userID)
 	for _, v := range videos {
 		logrus.Debug(v)
 	}
@@ -394,9 +388,9 @@ func GetVideoListAndAuthorByVideoIDList(videoIDList []uint) ([]models.VideoModel
 	}
 	authorCacher := database.GetUserInfoCacher()
 	authorCache := authorCacher.GetMulti(authorIDList)
-	for _, v := range videos {
-		if authorCache[v.AuthorID].ID != 0 {
-			v.Author.SetValueFromCacheModel(authorCache[v.AuthorID])
+	for i := 0; i < len(videos); i++ {
+		if authorCache[videos[i].AuthorID].ID != 0 {
+			videos[i].Author.SetValueFromCacheModel(authorCache[videos[i].AuthorID])
 		}
 	}
 	// cache中没有的作者ID
@@ -412,9 +406,9 @@ func GetVideoListAndAuthorByVideoIDList(videoIDList []uint) ([]models.VideoModel
 		if err != nil {
 			return nil, err
 		}
-		for _, v := range videos {
-			if v.Author.ID == 0 {
-				v.Author = UsersMaps[v.AuthorID]
+		for i := 0; i < len(videos); i++ {
+			if videos[i].Author.ID == 0 {
+				videos[i].Author = UsersMaps[videos[i].AuthorID]
 			}
 		}
 	}
@@ -444,6 +438,7 @@ func GetUser_LikeVideoIDList_And_AuthorIDsFollowedMap_ByUserID(userID uint) (lik
 		likeVideoIDs = append(likeVideoIDs, video.ID)
 		authorIds = append(authorIds, video.AuthorID)
 	}
+	logrus.Debug("authorIds", authorIds)
 	idsFollowedMap, err = QueryFollowedMapByUserIDList(userID, authorIds)
 	if err != nil {
 		return nil, nil, err

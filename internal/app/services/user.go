@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 
+	"github.com/Doraemonkeys/douyin2/internal/app"
 	"github.com/Doraemonkeys/douyin2/internal/app/handlers/response"
 	"github.com/Doraemonkeys/douyin2/internal/app/models"
 	"github.com/Doraemonkeys/douyin2/internal/database"
@@ -84,7 +85,7 @@ func QueryUserExistById(id int) bool {
 func QueryUserExistByUsername(username string) bool {
 	var user models.UserModel
 	db := database.GetMysqlDB()
-	err := db.Debug().Unscoped().Where(models.UserModelTable_Username+" = ?", username).Find(&user).Error
+	err := db.Unscoped().Where(models.UserModelTable_Username+" = ?", username).Find(&user).Error
 	if !errors.Is(err, gorm.ErrRecordNotFound) && user.ID > 0 {
 		return true
 	}
@@ -111,8 +112,7 @@ func QueryUserExistByUsername(username string) bool {
 func QueryUserFollowed(userID uint, followID uint) bool {
 	var UserFollows models.UserFollowerModel
 	db := database.GetMysqlDB()
-	err := db.Debug().
-		Model(&UserFollows).
+	err := db.Model(&UserFollows).
 		Where(models.UserFollowerModelTable_UserID+" = ? AND "+
 			models.UserFollowerModelTable_FollowerID+" = ?", userID, followID).Error
 
@@ -155,7 +155,7 @@ func QueryUserFollowedMap(userID uint, followIDList []uint) (map[uint]bool, erro
 func QueryFavorVideoIDListByUserID(userID uint) (likeVideos []uint, err error) {
 	db := database.GetMysqlDB()
 	var userFavor []models.UserLikeModel
-	db.Debug().Where(models.UserLikeModelTable_UserID+" = ?", userID).Find(&userFavor)
+	db.Where(models.UserLikeModelTable_UserID+" = ?", userID).Find(&userFavor)
 	for _, userFavor := range userFavor {
 		likeVideos = append(likeVideos, userFavor.VideoID)
 	}
@@ -166,7 +166,7 @@ func QueryUserMapsByUserIDList(userIDList []uint) (userList map[uint]models.User
 	userList = make(map[uint]models.UserModel)
 	db := database.GetMysqlDB()
 	var userListTemp []models.UserModel
-	err = db.Debug().Where("id IN (?)", userIDList).Find(&userListTemp).Error
+	err = db.Where("id IN (?)", userIDList).Find(&userListTemp).Error
 	if err != nil {
 		logrus.Error("query user failed, err: ", err)
 		return userList, errors.New(response.ErrServerInternal)
@@ -213,7 +213,8 @@ func GetUserMapByUserIdMap[T any](userIdMap map[uint]T) (userMap map[uint]models
 
 func QueryUserListByUserIDList(userIDList []uint) (userList []models.UserModel, err error) {
 	db := database.GetMysqlDB()
-	err = db.Debug().Where("id IN (?)", userIDList).Find(&userList).Error
+	app.ZeroCheck(userIDList...)
+	err = db.Where("id IN (?)", userIDList).Find(&userList).Error
 	if err != nil {
 		logrus.Error("query user failed, err: ", err)
 		return userList, errors.New(response.ErrServerInternal)

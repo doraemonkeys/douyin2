@@ -3,6 +3,7 @@ package comment
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/Doraemonkeys/douyin2/internal/app"
 	"github.com/Doraemonkeys/douyin2/internal/app/handlers/response"
@@ -43,7 +44,7 @@ const (
 )
 
 // 应该确保dto中的字段都是合法的
-func (dto *PostCommentDTO) newMsg(c *gin.Context) msgQueue.CommentMsg {
+func (dto *PostCommentDTO) newMsg(commenterID uint) msgQueue.CommentMsg {
 	var Msg msgQueue.CommentMsg
 	uintID, _ := strconv.ParseUint(dto.VideoID, 10, 64)
 	Msg.VideoID = uint(uintID)
@@ -51,8 +52,8 @@ func (dto *PostCommentDTO) newMsg(c *gin.Context) msgQueue.CommentMsg {
 	Msg.CommentId = uint(uintCommentID)
 	Msg.ActionType = dto.ActionType
 	Msg.CommentText = dto.CommentText
-	user := c.MustGet(app.UserKeyName).(app.User)
-	Msg.CommenterID = user.ID
+
+	Msg.CommenterID = commenterID
 	return Msg
 }
 
@@ -60,9 +61,30 @@ func PostCommentHandler(c *gin.Context) {
 	var dto PostCommentDTO
 	dto.getAndCheckPostCommentDTO(c)
 	mq := msgQueue.GetCommentMQ()
-	var Msg msgQueue.CommentMsg = dto.newMsg(c)
+	user := c.MustGet(app.UserKeyName).(app.User)
+	var Msg msgQueue.CommentMsg = dto.newMsg(user.ID)
 	mq.Push(Msg)
-	response.ResponseSuccess(c, SuccComment)
+	if dto.ActionType != PostCommentDTO_ActionType_Add {
+		response.ResponseSuccess(c, SuccComment)
+		return
+	}
+	commenterInfo, err := services.GetUserById(user.ID)
+	if err != nil {
+		logrus.Error("PostCommentHandler:GetUserById: ", err)
+		response.ResponseSuccess(c, SuccComment)
+		return
+	}
+	var commentRes response.Comment
+	//评论在消息队列中处理，这里先返回0
+	commentRes.ID = 0
+	commentRes.Content = dto.CommentText
+	commentRes.CreateDate = time.Now().Format(response.CommentResFormat)
+	commentRes.User.SetValue(commenterInfo, services.QueryUserFollowed(user.ID, user.ID))
+	var res response.PostCommentResponse
+	res.Comment = commentRes
+	res.StatusCode = response.Success
+	res.StatusMsg = SuccComment
+	c.JSON(http.StatusOK, res)
 }
 
 func (dto *PostCommentDTO) getAndCheckPostCommentDTO(c *gin.Context) {
@@ -111,7 +133,6 @@ func QueryCommentListHandler(c *gin.Context) {
 	commentCache := database.GetVideoCommentCacher()
 	commentsCache, exist := commentCache.Get(dto.VideoID)
 	if exist {
-		logrus.Info("QueryCommentListHandler: cache hit ", commentsCache.CacheMap)
 		queryCommentListHandler_CacheHit(c, commentsCache)
 		return
 	}
@@ -135,7 +156,6 @@ func queryCommentListHandler_CacheHit(c *gin.Context, commentsCache models.Comme
 		}
 		CommentList[i].User.ID = int(comment.UserID)
 		commenterIDMap[comment.UserID] = struct{}{}
-		logrus.Debug("commenterID: ", comment.UserID, " comment: ", comment.Content)
 		i++
 	}
 	commentsCache.MapLock.RUnlock()
@@ -157,7 +177,6 @@ func queryCommentListHandler_CacheHit(c *gin.Context, commentsCache models.Comme
 	var temp response.User
 	for k, comment := range CommentList {
 		temp.SetValue(commenterMap[uint(comment.User.ID)], followedMap[uint(comment.User.ID)])
-		logrus.Debug("QueryCommentListHandler: temp: ", temp)
 		CommentList[k].User = temp
 	}
 	res.CommentList = CommentList

@@ -79,7 +79,7 @@ func QueryCommentListWithCommenterByVideoID(videoId uint) ([]models.CommentModel
 	var commentList []models.CommentModel
 	Commenter := models.CommentModelPreload_Commenter
 	video_id := models.CommentModelTable_VideoID
-	err := db.Debug().Preload(Commenter).Where(video_id+" = ?", videoId).Find(&commentList).Error
+	err := db.Preload(Commenter).Where(video_id+" = ?", videoId).Find(&commentList).Error
 	if err != nil {
 		logrus.Error("query comment list failed, err: ", err)
 		return commentList, err

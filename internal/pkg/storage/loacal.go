@@ -75,7 +75,7 @@ func (s *LocalDouyinVedioSaver) Get(uid uint) (SimpleObject, error) {
 // QueryOrignalName 根据视频uid查询视频原始文件名
 func (s *LocalDouyinVedioSaver) QueryOrignalName(uid uint) (string, error) {
 	var video VedioObjectModel
-	err := s.db.Debug().Where("uid = ?", uid).Take(&video).Error
+	err := s.db.Where("uid = ?", uid).Take(&video).Error
 	if err != nil {
 		return "", err
 	}
@@ -96,7 +96,7 @@ func (s *LocalDouyinVedioSaver) SaveAndQueryExist(obj SimpleObject) (uid uint, e
 func (s *LocalDouyinVedioSaver) QueryExistBySHA1(sha1 string) bool {
 	sha1 = strings.ToLower(sha1)
 	var video VedioObjectModel
-	err := s.db.Debug().Where("sha1 = ?", sha1).Find(&video).Error
+	err := s.db.Where("sha1 = ?", sha1).Find(&video).Error
 	if err == gorm.ErrRecordNotFound || video.UID == 0 {
 		return false
 	}
@@ -152,7 +152,7 @@ func (s *LocalDouyinVedioSaver) SaveUnique(video SimpleObject) (uid uint, err er
 
 func (s *LocalDouyinVedioSaver) GetURL(uid uint) (videoUrl string, coverUrl string, err error) {
 	var video VedioObjectModel
-	err = s.db.Debug().Where("uid = ?", uid).Take(&video).Error
+	err = s.db.Where("uid = ?", uid).Take(&video).Error
 	if err != nil {
 		return
 	}

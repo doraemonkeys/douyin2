@@ -4,7 +4,6 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/sirupsen/logrus"
 	"github.com/wumansgy/goEncrypt/aes"
 )
 
@@ -25,7 +24,6 @@ func (a *CbcAESCrypt) Encrypt(plainText string) (string, error) {
 	if plainText == "" {
 		return "", errors.New("plainText is empty")
 	}
-	logrus.Debug("encrypt raw token:|" + plainText + "|")
 	return aes.AesCbcEncryptHex([]byte(plainText), a.secretKey, nil)
 }
 
