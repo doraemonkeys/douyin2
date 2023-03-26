@@ -11,6 +11,8 @@ const (
 	UserModelTable_FollowersSlice   = "Followers"
 	UserModelTable_FansSlice        = "Fans"
 	UserModelTable_CollectionsSlice = "Collections"
+	UserModelTable_FollowerCount    = "follower_count"
+	UserModelTable_FanCount         = "fan_count"
 )
 
 const DataBaseTimeFormat = "2006-01-02 15:04:05.000"
@@ -33,7 +35,8 @@ type UserModel struct {
 	//关注列表
 	Followers []UserModel `gorm:"many2many:user_follower;joinForeignKey:UserID;joinReferences:FollowerID"`
 	//粉丝列表
-	Fans []UserModel `gorm:"many2many:user_fan;joinForeignKey:UserID;joinReferences:FanID"`
+	//Fans []UserModel `gorm:"many2many:user_fan;joinForeignKey:UserID;joinReferences:FanID"`
+	Fans []UserModel `gorm:"many2many:user_follower;joinForeignKey:FollowerID;joinReferences:UserID"`
 	//点赞列表
 	Likes []VideoModel `gorm:"many2many:user_like;joinForeignKey:UserID;joinReferences:VideoID"`
 	//评论列表

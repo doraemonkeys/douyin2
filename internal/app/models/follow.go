@@ -10,8 +10,7 @@ const (
 
 // 关注列表
 type UserFollowerModel struct {
-	ID         uint `gorm:"primarykey"`
 	CreatedAt  time.Time
-	UserID     uint
-	FollowerID uint
+	UserID     uint `gorm:"primary_key"`
+	FollowerID uint `gorm:"primary_key"`
 }
