@@ -128,7 +128,6 @@ func queryFavorVideoListHandler_CacheHit(c *gin.Context, queryFavorVideoListDTO 
 		for i, val := range videoAndAuthorInfos {
 			queryIdList[i] = val.AuthorID
 		}
-		logrus.Debug("queryIdList: ", queryIdList)
 		FollowedMap, err = services.QueryFollowedMapByUserIDList(user.ID, queryIdList)
 		if err != nil {
 			logrus.Error("get followed map failed, err:", err)

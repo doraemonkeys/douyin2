@@ -66,7 +66,6 @@ func PublishVedioHandler(c *gin.Context) {
 		response.ResponseError(c, ErrorVideoTitleEmpty)
 	}
 	if !titleCheck(publishRequest.Title) {
-		logrus.Trace("title is too long", publishRequest.Title, "len:", len(publishRequest.Title))
 		response.ResponseError(c, response.ErrInvalidParams)
 		return
 	}
@@ -98,7 +97,7 @@ func PublishVedioHandler(c *gin.Context) {
 		logrus.Error("get vedio url failed, err:", err)
 		return
 	}
-	logrus.Trace("videoUrl:", videoUrl, "CoverUrl:", CoverUrl)
+	logrus.Debug("videoUrl:", videoUrl, "CoverUrl:", CoverUrl)
 	//获取User
 	user := c.MustGet(app.UserKeyName).(app.User)
 	var videoModel models.VideoModel
@@ -161,7 +160,6 @@ func QueryPublishListHandler(c *gin.Context) {
 		response.ResponseError(c, response.ErrInvalidParams)
 		return
 	}
-	logrus.Trace("queryVideoListDTO:", queryVideoListDTO)
 
 	// 获取被查询的用户
 	targetUser, err := services.GetUserById(uint(queryVideoListDTO.UserId))
@@ -182,7 +180,6 @@ func QueryPublishListHandler(c *gin.Context) {
 		return
 	}
 	if len(targetUserVideoPublishList) == 0 {
-		logrus.Trace("target user publish list is empty")
 		response.ResponseSuccess(c, response.EmptyVideoList)
 		return
 	}

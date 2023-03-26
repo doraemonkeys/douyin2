@@ -130,7 +130,6 @@ func GetVideoAndAuthorListFeedByLastTime(lastTime int64, limit int) ([]models.Vi
 		}
 		videos1 = append(videos1, temp)
 	}
-	logrus.Debug("GetVideoListFeedByLastTime from cache：", videos1)
 	// 1.2 from mysql 处理cache miss
 	if len(cacheMiss) > 0 {
 		Users, err := QueryUserListByUserIDList(cacheMiss)
@@ -157,18 +156,11 @@ func GetVideoAndAuthorListFeedByLastTime(lastTime int64, limit int) ([]models.Vi
 		if err != nil {
 			return nil, err
 		}
-		for _, v := range videos2 {
-			logrus.Debug("GetVideoListFeedByLastTime from mysql：", v.Author)
-		}
 	}
 	// 合并两个视频列表
 	Videos := append(videos1, videos2...)
 	if len(Videos) == 0 {
 		return nil, errors.New(ErrDBEmpty)
-	}
-	//debug
-	for _, v := range Videos {
-		logrus.Debug("query debug author:", v.Author)
 	}
 	return Videos, nil
 }
@@ -190,9 +182,6 @@ func QueryPublishListByAuthorID(userID uint) ([]models.VideoModel, error) {
 	err := db.Where(author_id+" = ?", userID).Order(created_at + " desc").Find(&videos).Error
 	if err != nil {
 		return nil, err
-	}
-	for _, v := range videos {
-		logrus.Debug(v)
 	}
 	return videos, nil
 }
@@ -377,7 +366,6 @@ func GetVideoListAndAuthorByVideoIDList(videoIDList []uint) ([]models.VideoModel
 		if err != nil {
 			return nil, err
 		}
-		logrus.Debug("从MySQL中获取cache未命中的视频信息", MysqlVideos)
 		videos = append(videos, MysqlVideos...)
 	}
 
@@ -438,7 +426,6 @@ func GetUser_LikeVideoIDList_And_AuthorIDsFollowedMap_ByUserID(userID uint) (lik
 		likeVideoIDs = append(likeVideoIDs, video.ID)
 		authorIds = append(authorIds, video.AuthorID)
 	}
-	logrus.Debug("authorIds", authorIds)
 	idsFollowedMap, err = QueryFollowedMapByUserIDList(userID, authorIds)
 	if err != nil {
 		return nil, nil, err

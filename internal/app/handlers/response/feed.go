@@ -34,6 +34,5 @@ func (v *VideoListResponse) SetValues(videoList []models.VideoModel, QueryerLiks
 		v.VideoList = append(v.VideoList, video)
 	}
 	v.NextTime = nextTime
-	logrus.Trace("nextTime:", nextTime)
-	logrus.Trace("videoList:", v.VideoList)
+	logrus.Debug("nextTime:", nextTime)
 }

@@ -9,8 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-
-	"github.com/sirupsen/logrus"
 )
 
 // 文件或文件夹是否存在
@@ -48,7 +46,6 @@ func CreateDir(path string) error {
 }
 
 func CreateCoverFromLocal(videoPath string, coverPath string) error {
-	logrus.Trace("create cover from local, videoPath: ", videoPath, ", coverPath: ", coverPath)
 	// capture first video frame as jpg
 	cmd := exec.Command("ffmpeg", "-i", videoPath, "-vframes", "1", coverPath)
 	err := cmd.Run()
@@ -70,7 +67,6 @@ func GetVideoDuration(videoPath string) (time.Duration, error) {
 	if err != nil {
 		return 0, err
 	}
-	logrus.Trace("video duration: ", duration)
 	return duration, nil
 }
 

@@ -13,7 +13,6 @@ import (
 
 	"github.com/Doraemonkeys/douyin2/config"
 	"github.com/Doraemonkeys/douyin2/utils"
-	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
@@ -217,8 +216,6 @@ func (s *SimpleObject) saveFile(newFilePath string) error {
 //
 // path: /data/vedio/2020/01/01/xxx.mp4
 func generateNewVedioAndCoverPath(basePath string, baseName string) (string, string) {
-	logrus.Trace("vedio basePath:", basePath)
-	logrus.Trace("vedio baseName:", baseName)
 
 	// 生成视频文件的路径
 	vedioPath := filepath.Join(
@@ -228,10 +225,8 @@ func generateNewVedioAndCoverPath(basePath string, baseName string) (string, str
 		time.Now().Format("02"),
 		baseName,
 	)
-	logrus.Trace("vedioPath:", vedioPath)
 	// 生成封面文件的路径
 	coverPath := vedioPath + ".jpg"
-	logrus.Trace("coverPath:", coverPath)
 	return vedioPath, coverPath
 }
 

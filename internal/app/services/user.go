@@ -97,7 +97,7 @@ func QueryUserWithFanListByUserID(id uint) (models.UserModel, error) {
 	const fieldFan = models.UserModelTable_FansSlice
 	var user models.UserModel
 	db := database.GetMysqlDB()
-	err := db.Debug().Preload(fieldFan).Where("id = ?", id).Find(&user).Error
+	err := db.Preload(fieldFan).Where("id = ?", id).Find(&user).Error
 	if err != nil {
 		return user, err
 	}
@@ -133,7 +133,6 @@ func QueryUserFollowedMap(userID uint, followIDList []uint) (map[uint]bool, erro
 		Where(models.UserFollowerModelTable_UserID+" = ? AND "+
 			models.UserFollowerModelTable_FollowerID+" IN (?)", userID, followIDList).Find(&UserFollows).Error
 
-	logrus.Debug("UserFollows: ", UserFollows)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -233,7 +232,7 @@ func QueryFollowedMapByUserIDList(id uint, userIDList []uint) (followedMap map[u
 	}
 	db := database.GetMysqlDB()
 	var userFollows []models.UserFollowerModel
-	err = db.Debug().Where(models.UserFollowerModelTable_UserID+" = ? AND "+
+	err = db.Where(models.UserFollowerModelTable_UserID+" = ? AND "+
 		models.UserFollowerModelTable_FollowerID+" IN (?)", id, userIDList).Find(&userFollows).Error
 	if err != nil {
 		logrus.Error("query user failed, err: ", err)
@@ -253,7 +252,7 @@ func QueryFollowedMapByUserIDMap[T any](id uint, userIDMap map[uint]T) (followed
 	for id := range userIDMap {
 		ids = append(ids, id)
 	}
-	err = db.Debug().Where(models.UserFollowerModelTable_UserID+" = ? AND "+
+	err = db.Where(models.UserFollowerModelTable_UserID+" = ? AND "+
 		models.UserFollowerModelTable_FollowerID+" IN (?)", id, ids).Find(&userFollows).Error
 	if err != nil {
 		logrus.Error("query user failed, err: ", err)
