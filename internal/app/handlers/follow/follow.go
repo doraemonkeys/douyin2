@@ -142,10 +142,6 @@ func QueryFollowListHandler(c *gin.Context) {
 		UserList[i].SetValue(v, followedMap[v.ID])
 		app.ZeroCheck(UserList[i].ID)
 	}
-	//debug
-	for _, v := range UserList {
-		logrus.Debug("queryerID: ", user.ID, " queryID: ", p.UserID, " followID: ", v.ID, " followed: ", v.IsFollow)
-	}
 	res.UserList = UserList
 	res.StatusCode = response.Success
 	c.JSON(200, res)
@@ -185,7 +181,6 @@ func QueryFanListHandler(c *gin.Context) {
 		return
 	}
 	fanList := tagetUser.Fans
-	logrus.Debug("fanList: ", fanList)
 	var res response.QueryFanListResponse
 
 	//查询查询者是否关注了被查询者的粉丝列表中的用户
