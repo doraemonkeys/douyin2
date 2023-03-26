@@ -44,7 +44,7 @@ const (
 	ErrUserToken      = "用户token错误"
 	ErrUserTokenExp   = "用户token过期"
 	ErrInvalidParams  = "参数错误"
-	ErrDBEmpty        = "数据库为空"
+	ErrDBEmpty        = "已经没有更多视频了"
 )
 
 // success response

@@ -59,7 +59,6 @@ func UserLoginHandler(c *gin.Context) {
 func Login(username string, password string) (response.LoginResponse, error) {
 	var res response.LoginResponse
 	user, err := services.QueryUserByUsername(username)
-	logrus.Debug("login user: ", user)
 	if err != nil {
 		if err.Error() == response.ErrUserNotExists {
 			return res, errors.New(response.ErrUserNotExists)

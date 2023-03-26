@@ -28,16 +28,20 @@ const (
 	PostFavorDTO_ActionTyp = "action_type"
 )
 
+const (
+	// 1-点赞，2-取消点赞
+	ActionType_Favor   = "1"
+	ActionType_Unfavor = "2"
+)
+
 func PostFavorHandler(c *gin.Context) {
 	var postFavorDTO PostFavorDTO
 	postFavorDTO.VideoID, _ = strconv.Atoi(c.Query(PostFavorDTO_VideoID))
 	postFavorDTO.ActionType = c.Query(PostFavorDTO_ActionTyp)
-	logrus.Debug("postFavorDTO: ", postFavorDTO)
 	// 获取用户
 	user := c.MustGet(app.UserKeyName).(app.User)
 	// 点赞
-	if postFavorDTO.ActionType != "1" && postFavorDTO.ActionType != "2" {
-		logrus.Debug("invalid action type ", postFavorDTO.ActionType)
+	if postFavorDTO.ActionType != ActionType_Favor && postFavorDTO.ActionType != ActionType_Unfavor {
 		response.ResponseError(c, response.ErrInvalidParams)
 		return
 	}
@@ -50,7 +54,6 @@ func PostFavorHandler(c *gin.Context) {
 		UserID:     user.ID,
 		ActionType: action,
 	})
-	logrus.Debug("send to mq success")
 	response.ResponseSuccess(c, FavoriteSuccess)
 }
 
@@ -158,10 +161,6 @@ func queryFavorVideoListHandler_CacheMiss(c *gin.Context, queryFavorVideoListDTO
 		response.ResponseError(c, response.ErrServerInternal)
 		return
 	}
-	//debug
-	for _, val := range videoList {
-		logrus.Debug("videoList: ", val, "author: ", val.Author)
-	}
 	// 获取视频作者是否被查询者关注
 	user := c.MustGet(app.UserKeyName).(app.User)
 	queryIdList := make([]uint, len(videoList))
@@ -169,7 +168,6 @@ func queryFavorVideoListHandler_CacheMiss(c *gin.Context, queryFavorVideoListDTO
 		app.ZeroCheck(val.AuthorID)
 		queryIdList[i] = val.AuthorID
 	}
-	logrus.Debug("queryIdList: ", queryIdList)
 	followedMap, err := services.QueryFollowedMapByUserIDList(user.ID, queryIdList)
 	if err != nil {
 		logrus.Error("get followed map failed, err:", err)

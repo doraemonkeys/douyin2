@@ -35,7 +35,6 @@ func UserRegisterHandler(c *gin.Context) {
 	registerRequest.Username, ok1 = c.GetQuery(RegisterUserDTO_Username)
 	registerRequest.Password, ok2 = c.GetQuery(RegisterUserDTO_Password)
 	if !ok1 || !ok2 {
-		logrus.Debug("UserRegisterHandler error: ", "username or password is empty")
 		res.CommonResponse.StatusCode = response.Failed
 		res.CommonResponse.StatusMsg = response.ErrInvalidParams
 		c.JSON(http.StatusOK, res)
