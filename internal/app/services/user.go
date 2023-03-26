@@ -93,20 +93,19 @@ func QueryUserExistByUsername(username string) bool {
 }
 
 // QueryUserWithFollowers 用户信息与粉丝列表
-// func QueryUserWithFollowersByID(id int) (models.UserModel, error) {
-// 	const fieldFollower = models.UserModelTable_FollowersSlice
-// 	var user models.UserModel
-// 	db := database.GetMysqlDB()
-// 	err := db.Debug().Preload(fieldFollower).Where("id = ?", id).Find(&user).Error
-// 	if err != nil {
-// 		if errors.Is(err, gorm.ErrRecordNotFound) {
-// 			return user, errors.New(response.ErrUserNotExists)
-// 		}
-// 		logrus.Error("query user failed, err: ", err)
-// 		return user, errors.New(response.ErrServerInternal)
-// 	}
-// 	return user, nil
-// }
+func QueryUserWithFanListByUserID(id uint) (models.UserModel, error) {
+	const fieldFan = models.UserModelTable_FansSlice
+	var user models.UserModel
+	db := database.GetMysqlDB()
+	err := db.Debug().Preload(fieldFan).Where("id = ?", id).Find(&user).Error
+	if err != nil {
+		return user, err
+	}
+	for _, fan := range user.Fans {
+		app.ZeroCheck(fan.ID)
+	}
+	return user, nil
+}
 
 // 判断某个用户是否关注了另一个用户
 func QueryUserFollowed(userID uint, followID uint) bool {

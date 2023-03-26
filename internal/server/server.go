@@ -69,7 +69,7 @@ func initDouyinRouter() *gin.Engine {
 	//extend 2
 	baseGroup.POST("/relation/action/", middleware.JWTMiddleWare(), follow.PostFollowActionHandler)
 	baseGroup.GET("/relation/follow/list/", middleware.JWTMiddleWare(), follow.QueryFollowListHandler)
-	// baseGroup.GET("/relation/follower/list/", middleware.NoAuthToGetUserId(), user_info.QueryFollowerHandler)
+	baseGroup.GET("/relation/follower/list/", middleware.JWTMiddleWare(), follow.QueryFanListHandler)
 
 	return router
 }

@@ -57,3 +57,8 @@ func (u *UserList) SetValue(user models.UserModel, isFollow bool) {
 	u.FollowerCount = int(user.FanCount)
 	u.IsFollow = isFollow
 }
+
+type QueryFanListResponse struct {
+	CommonResponse
+	UserList []UserList `json:"user_list"`
+}

@@ -150,3 +150,64 @@ func QueryFollowListHandler(c *gin.Context) {
 	res.StatusCode = response.Success
 	c.JSON(200, res)
 }
+
+type QueryFanListDTO struct {
+	Token  string `json:"token"`
+	UserID uint   `json:"user_id"`
+}
+
+const (
+	QueryFanListDTOtag_UserID = "user_id"
+)
+
+func (p *QueryFanListDTO) getAndCheckDTO(c *gin.Context) {
+	var exist bool
+	strID, exist := c.GetQuery(QueryFanListDTOtag_UserID)
+	if !exist {
+		response.ResponseError(c, response.ErrInvalidParams)
+		return
+	}
+	uintID, err := strconv.ParseUint(strID, 10, 64)
+	if err != nil || uintID == 0 {
+		response.ResponseError(c, response.ErrInvalidParams)
+		return
+	}
+	p.UserID = uint(uintID)
+}
+
+func QueryFanListHandler(c *gin.Context) {
+	var p QueryFanListDTO
+	p.getAndCheckDTO(c)
+	tagetUser, err := services.QueryUserWithFanListByUserID(p.UserID)
+	if err != nil {
+		logrus.Error("QueryFanListHandler err:", err)
+		response.ResponseError(c, response.ErrServerInternal)
+		return
+	}
+	fanList := tagetUser.Fans
+	logrus.Debug("fanList: ", fanList)
+	var res response.QueryFanListResponse
+
+	//查询查询者是否关注了被查询者的粉丝列表中的用户
+	user := c.MustGet(app.UserKeyName).(app.User)
+	var UserList = make([]response.UserList, len(fanList))
+
+	queryIDs := make([]uint, len(fanList))
+	for i, v := range fanList {
+		queryIDs[i] = v.ID
+	}
+	followedMap, err := services.QueryUserFollowedMap(user.ID, queryIDs)
+	if err != nil {
+		logrus.Error("QueryFanListHandler err:", err)
+		response.ResponseError(c, response.ErrServerInternal)
+		return
+	}
+	for i, v := range fanList {
+		UserList[i].SetValue(v, followedMap[v.ID])
+		app.ZeroCheck(UserList[i].ID)
+	}
+
+	res.UserList = UserList
+	res.StatusCode = response.Success
+	c.JSON(200, res)
+}
