@@ -78,7 +78,7 @@ func (hook *logHook) Fire(entry *logrus.Entry) error {
 		entry.Data[hook.LogConfig.key] = hook.LogConfig.value
 	}
 	file := entry.Caller.File
-	file = getShortFileName(file)
+	file = getShortFileName(file, fmt.Sprint(entry.Caller.Line))
 	entry.Data["FILE"] = file
 	entry.Data["FUNC"] = entry.Caller.Function[strings.LastIndex(entry.Caller.Function, ".")+1:]
 
@@ -133,13 +133,16 @@ func (hook *logHook) Fire(entry *logrus.Entry) error {
 }
 
 // D:\xxx\yyy\yourproject\pkg\log\log.go -> pkg\log\log.go
-func getShortFileName(file string) string {
+func getShortFileName(file string, lineInfo string) string {
 	file = strings.Replace(file, "\\", "/", -1)
 	if strings.Contains(file, "/") {
 		env, _ := os.Getwd()
 		env = strings.Replace(env, "\\", "/", -1)
-		file = strings.Replace(file, env, "", -1)
-		//file = file[strings.LastIndex(file, "/")+1:] + ":" + fmt.Sprint(entry.Caller.Line)
+		file = strings.Replace(file, env, "", 1)
+		if file[0] == '/' {
+			file = file[1:]
+		}
+		file = file + ":" + lineInfo
 	}
 	return file
 }
