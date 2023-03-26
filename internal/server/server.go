@@ -9,6 +9,7 @@ import (
 	"github.com/Doraemonkeys/douyin2/internal/app/handlers/comment"
 	"github.com/Doraemonkeys/douyin2/internal/app/handlers/favorite"
 	"github.com/Doraemonkeys/douyin2/internal/app/handlers/feed"
+	"github.com/Doraemonkeys/douyin2/internal/app/handlers/follow"
 	"github.com/Doraemonkeys/douyin2/internal/app/handlers/publish"
 	"github.com/Doraemonkeys/douyin2/internal/app/handlers/user"
 	"github.com/Doraemonkeys/douyin2/internal/app/middleware"
@@ -65,8 +66,8 @@ func initDouyinRouter() *gin.Engine {
 	baseGroup.POST("/comment/action/", middleware.JWTMiddleWare(), comment.PostCommentHandler)
 	baseGroup.GET("/comment/list/", middleware.JWTMiddleWare(), comment.QueryCommentListHandler)
 
-	// //extend 2
-	// baseGroup.POST("/relation/action/", middleware.JWTMiddleWare(), user_info.PostFollowActionHandler)
+	//extend 2
+	baseGroup.POST("/relation/action/", middleware.JWTMiddleWare(), follow.PostFollowActionHandler)
 	// baseGroup.GET("/relation/follow/list/", middleware.NoAuthToGetUserId(), user_info.QueryFollowListHandler)
 	// baseGroup.GET("/relation/follower/list/", middleware.NoAuthToGetUserId(), user_info.QueryFollowerHandler)
 

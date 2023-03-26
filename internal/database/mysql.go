@@ -45,7 +45,7 @@ func connectMysql() {
 
 func mirateTable() {
 	db.SetupJoinTable(&models.UserModel{}, models.UserModelTable_FollowersSlice, &models.UserFollowerModel{})
-	db.SetupJoinTable(&models.UserModel{}, models.UserModelTable_FansSlice, &models.UserFanModel{})
+	db.SetupJoinTable(&models.UserModel{}, models.UserModelTable_FansSlice, &models.UserFollowerModel{})
 	db.SetupJoinTable(&models.UserModel{}, models.UserModelTable_LikesSlice, &models.UserLikeModel{})
 	db.SetupJoinTable(&models.UserModel{}, models.UserModelTable_CollectionsSlice, &models.UserCollectionModel{})
 
@@ -57,7 +57,7 @@ func mirateTable() {
 		&models.VideoModel{},
 		&models.CommentModel{},
 		&models.UserFollowerModel{},
-		&models.UserFanModel{},
+		//&models.UserFanModel{},
 		&models.UserLikeModel{},
 		&models.UserCollectionModel{},
 	)
