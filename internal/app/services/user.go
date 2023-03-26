@@ -130,11 +130,9 @@ func QueryUserFollowed(userID uint, followID uint) bool {
 func QueryUserFollowedMap(userID uint, followIDList []uint) (map[uint]bool, error) {
 	var UserFollows []models.UserFollowerModel
 	db := database.GetMysqlDB()
-	logrus.Debug("看看这里的sql语句对不对")
-	err := db.Debug().
-		Model(&UserFollows).
+	err := db.Model(&models.UserFollowerModel{}).
 		Where(models.UserFollowerModelTable_UserID+" = ? AND "+
-			models.UserFollowerModelTable_FollowerID+" IN (?)", userID, followIDList).Error
+			models.UserFollowerModelTable_FollowerID+" IN (?)", userID, followIDList).Find(&UserFollows).Error
 
 	logrus.Debug("UserFollows: ", UserFollows)
 	if err != nil {

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"github.com/Doraemonkeys/douyin2/internal/app"
 	"github.com/Doraemonkeys/douyin2/internal/app/models"
 	"github.com/Doraemonkeys/douyin2/internal/database"
 	"gorm.io/gorm"
@@ -98,4 +99,19 @@ func UnfollowUser(userID, toUserID uint) error {
 		userCacher.Set(toUserID, toUserCache)
 	}
 	return nil
+}
+
+func QueryFollowUserListByUserID(userID uint) ([]models.UserModel, error) {
+	db := database.GetMysqlDB()
+	var user models.UserModel
+	user.ID = userID
+	Followers := models.UserModelTable_FollowersSlice
+	err := db.Preload(Followers).Take(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	for i := 0; i < len(user.Followers); i++ {
+		app.ZeroCheck(user.Followers[i].ID)
+	}
+	return user.Followers, nil
 }

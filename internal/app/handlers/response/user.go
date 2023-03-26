@@ -37,3 +37,23 @@ func (u *User) SetValue(user models.UserModel, isFollow bool) {
 	u.FollowerCount = int(user.FanCount)
 	u.IsFollow = isFollow
 }
+
+type QueryFollowListResponse struct {
+	CommonResponse
+	UserList []UserList `json:"user_list"`
+}
+type UserList struct {
+	ID            int    `json:"id"`
+	Name          string `json:"name"`
+	FollowCount   int    `json:"follow_count"`
+	FollowerCount int    `json:"follower_count"`
+	IsFollow      bool   `json:"is_follow"`
+}
+
+func (u *UserList) SetValue(user models.UserModel, isFollow bool) {
+	u.ID = int(user.ID)
+	u.Name = user.Username
+	u.FollowCount = int(user.FollowerCount)
+	u.FollowerCount = int(user.FanCount)
+	u.IsFollow = isFollow
+}
