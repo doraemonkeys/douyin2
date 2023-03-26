@@ -20,7 +20,7 @@ type FavoriteMSg struct {
 	ActionType int `json:"action_type"`
 }
 
-const FavoriteWorkerNum int = 10
+const favoriteWorkerNum int = 10
 
 var favoriteMQ *messageQueue.SimpleMQ[FavoriteMSg]
 var favoriteMQInitOnce sync.Once
@@ -34,7 +34,7 @@ func GetFavoriteMQ() messageQueue.MQ[FavoriteMSg] {
 // 点赞消息队列
 func InitFavoriteMQ() {
 	favoriteMQInitOnce.Do(func() {
-		favoriteMQ = messageQueue.NewSimpleMQ(FavoriteWorkerNum, FavoriteMsgHandler)
+		favoriteMQ = messageQueue.NewSimpleMQ(favoriteWorkerNum, FavoriteMsgHandler)
 	})
 }
 

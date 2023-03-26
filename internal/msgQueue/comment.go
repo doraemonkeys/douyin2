@@ -31,11 +31,11 @@ func GetCommentMQ() messageQueue.MQ[CommentMsg] {
 	return commentMQ
 }
 
-const CommentWorkerNum int = 10
+const commentWorkerNum int = 10
 
 func InitCommentMQ() {
 	commentMQInitOnce.Do(func() {
-		commentMQ = messageQueue.NewSimpleMQ(CommentWorkerNum, CommentMsgHandler)
+		commentMQ = messageQueue.NewSimpleMQ(commentWorkerNum, CommentMsgHandler)
 	})
 }
 

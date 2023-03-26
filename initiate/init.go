@@ -26,6 +26,7 @@ func Run() {
 	// init message queue
 	msgQueue.InitFavoriteMQ()
 	msgQueue.InitCommentMQ()
+	msgQueue.InitFollowMQ()
 
 	// main logic
 	runDouyinServer()
