@@ -46,8 +46,11 @@ func initPanicLogWriter() io.Writer {
 func initDouyinRouter() *gin.Engine {
 	router := gin.New()
 	writer := io.MultiWriter(initPanicLogWriter(), os.Stdout)
-	router.Use(gin.Logger(), gin.RecoveryWithWriter(writer))
-
+	if config.IsDebug() {
+		router.Use(gin.Logger(), gin.RecoveryWithWriter(writer))
+	} else {
+		router.Use(gin.RecoveryWithWriter(writer))
+	}
 	router.Static(config.GetVedioConfig().UrlPrefix, config.GetVedioConfig().BasePath)
 
 	baseGroup := router.Group("/douyin")
