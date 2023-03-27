@@ -45,7 +45,7 @@ func JWTMiddleWare(omitPaths ...string) gin.HandlerFunc {
 		//如果是忽略的路径，直接跳过
 		for _, path := range omitPaths {
 			if c.FullPath() == path && !ok {
-				logrus.Info(path, "跳过鉴权")
+				logrus.Debug(path, "跳过鉴权")
 				c.Next()
 				return
 			}
