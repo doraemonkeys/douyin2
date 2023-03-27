@@ -8,5 +8,6 @@
 log_file/*
 temp/*
 callGraph.bat
+info.txt
 #白名单
 !config/conf/EmptyConfig.yaml
