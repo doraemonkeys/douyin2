@@ -57,7 +57,6 @@ func mirateTable() {
 		&models.VideoModel{},
 		&models.CommentModel{},
 		&models.UserFollowerModel{},
-		//&models.UserFanModel{},
 		&models.UserLikeModel{},
 		&models.UserCollectionModel{},
 	)

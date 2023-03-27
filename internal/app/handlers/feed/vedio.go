@@ -39,7 +39,7 @@ func (p *proxyFeedVideoList) DoNoToken(feedRequest FeedVideeDTO) {
 	if err != nil {
 		response.ResponseError(p.Context, response.ErrInvalidParams)
 	}
-
+	logrus.Debug("lastTime: ", lastTime)
 	videoModels, err := services.GetVideoAndAuthorListFeedByLastTime(lastTime, FeedVedioListLimit)
 	if err != nil && err.Error() == services.ErrDBEmpty {
 		res.CommonResponse.StatusCode = response.Failed
@@ -132,7 +132,7 @@ func FeedVideoListHandler(c *gin.Context) {
 	proxy := NewProxyFeedVideoList(c)
 
 	var feedRequest FeedVideeDTO
-	feedRequest.LatestTime = c.DefaultQuery("latest_time", fmt.Sprint(time.Now().Unix()))
+	feedRequest.LatestTime = c.DefaultQuery("latest_time", fmt.Sprint(time.Now().UnixMilli()))
 	var ok bool
 	user, ok := c.Get(app.UserKeyName)
 	//未登录
