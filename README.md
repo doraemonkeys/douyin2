@@ -42,7 +42,7 @@ GO框架：Gin、Gorm、logrus
 
 鉴权：JWT+AES
 
-加密：bcrypt
+哈希：bcrypt
 
 对象存储：
 
@@ -50,7 +50,7 @@ GO框架：Gin、Gorm、logrus
 
 ## 使用方法
 
-- Go编译器版本要求 ：1.20 及以上
+- Go编译器版本要求 ：1.18+
 
 ```bash
 git clone https://github.com/Doraemonkeys/douyin2.git
